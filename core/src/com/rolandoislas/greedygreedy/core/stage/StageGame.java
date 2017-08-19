@@ -358,8 +358,8 @@ public class StageGame extends Stage implements ControlEventListener {
     }
 
     @Override
-    public void gameEnd(int winner) {
-        GreedyClient.setStage(new StagePostGame(players, winner));
+    public void gameEnd(ArrayList<Player> players) {
+        GreedyClient.setStage(new StagePostGame(players));
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.rolandoislas.greedygreedy.core.data.Player;
 import com.rolandoislas.greedygreedy.core.event.ControlEventListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -246,7 +247,9 @@ public class AiController implements GameController {
             mutex.unlock();
             return;
         }
-        int threshold = player.getBotType().stopThreshold;
+        int threshold = 0;
+        if (player.getBotType() != null)
+            threshold = player.getBotType().stopThreshold;
         //boolean avoidZilch = player.getBotType().avoidsZilch; // TODO avoid ziltch
         if (!turnStarted)
             rollClicked();
@@ -411,23 +414,16 @@ public class AiController implements GameController {
         players.get(currentPlayer).setActive(false);
         if (players.size() > ++currentPlayer)
             players.get(currentPlayer).setActive(true);
-        else
-            players.get(0).setActive(true);
+        else {
+            currentPlayer = 0;
+            players.get(currentPlayer).setActive(true);
+        }
         // Last round has ended. Check the scores for the highest amount.
         if (lastRound && lastRoundStarter == currentPlayer) {
-            int[] winner = new int[] {-1, -1, -1}; // [player, score, pos]
-            for (Player player : players) {
-                int pos = Math.abs(lastRoundStarter - players.indexOf(player));
-                if (player.getScore() > winner[1] || (player.getScore() == winner[1] && pos < winner[2])) {
-                    winner[0] = players.indexOf(player);
-                    winner[1] = player.getScore();
-                    winner[2] = pos;
-                }
-            }
             lastRound = false;
             handleActions = false;
             sendPlayerUpdate();
-            sendWinner(winner[0]);
+            sendWinner();
         }
     }
 
@@ -436,9 +432,28 @@ public class AiController implements GameController {
             listener.lastRound(lastRoundStarter);
     }
 
-    private void sendWinner(int winner) {
+    private void sendWinner() {
+        // Order players
+        Player[] order = new Player[players.size()];
+        for (int playerOrder = 0; playerOrder < players.size(); playerOrder++) {
+            int[] largestScore = new int[] {-1, -1}; // player index, score
+            for (Player player : players) {
+                if (player.getScore() > largestScore[1] && !contains(order, player)) {
+                    largestScore[0] = players.indexOf(player);
+                    largestScore[1] = player.getScore();
+                }
+            }
+            order[playerOrder] = players.get(largestScore[0]);
+        }
         for (ControlEventListener listener : eventListeners)
-            listener.gameEnd(winner);
+            listener.gameEnd(new ArrayList<Player>(Arrays.asList(order)));
+    }
+
+    private boolean contains(Object[] objs, Object o) {
+        for (Object oo : objs)
+            if (oo != null && oo.equals(o))
+                return true;
+        return false;
     }
 
     private void sendTurnEnd(int player, int points) {
