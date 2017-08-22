@@ -2,6 +2,7 @@ package com.rolandoislas.greedygreedy.core.stage;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -9,6 +10,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
 import com.rolandoislas.greedygreedy.core.data.Constants;
+import com.rolandoislas.greedygreedy.core.util.GameController;
+import com.rolandoislas.greedygreedy.core.util.PreferencesUtil;
 import com.rolandoislas.greedygreedy.core.util.TextUtil;
 
 /**
@@ -17,6 +20,7 @@ import com.rolandoislas.greedygreedy.core.util.TextUtil;
 public class StageMenu extends Stage {
 
     public StageMenu() {
+        setBackgroundColor(Color.BLACK);
         // Title
         Label.LabelStyle ls = new Label.LabelStyle();
         ls.font = TextUtil.generateScaledFont(1.25f);
@@ -33,7 +37,11 @@ public class StageMenu extends Stage {
         buttonSinglePlayer.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                GreedyClient.setStage(new StageGame(1, true));
+                if (PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE).contains(Constants.PREF_GAMESTATE_SINGLE_PLAYER))
+                    GreedyClient.setStage(new StageGame(1, true, true,
+                            GameController.GameType.ANY, true));
+                else
+                    GreedyClient.setStage(new StageGameOptions(true));
             }
         });
         addActor(buttonSinglePlayer);
@@ -44,7 +52,7 @@ public class StageMenu extends Stage {
         buttonMultiplayer.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // TODO make this move to the multiplayer search/host stage
+                GreedyClient.setStage(new StageGameOptions(false));
             }
         });
         addActor(buttonMultiplayer);

@@ -32,6 +32,7 @@ public class StageLoad extends Stage {
 	 * @param doLoad should resources be loaded? It acts as a splash screen otherwise.
 	 */
 	public StageLoad(boolean doLoad) {
+		setBackgroundColor(Color.BLACK);
 		this.doLoad = doLoad;
 		// Create icon
 		icon = new Image(new Texture("image/icon_512.png")); // TODO set icon
@@ -47,7 +48,7 @@ public class StageLoad extends Stage {
 		Label.LabelStyle loadingStyle = new Label.LabelStyle();
 		loadingStyle.font = new BitmapFont(Gdx.files.internal("font/collvetica.fnt"));
 		loadingStyle.font.getData().setScale((Gdx.graphics.getHeight() * .05f) / loadingStyle.font.getLineHeight());
-		loadingStyle.fontColor = Color.BLACK;
+		loadingStyle.fontColor = Color.WHITE;
 		loading = new Label(Constants.NAME, loadingStyle);
 		loading.setBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight() * .2f);
 		loading.setAlignment(Align.center);

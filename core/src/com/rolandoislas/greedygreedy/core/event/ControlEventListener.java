@@ -2,6 +2,7 @@ package com.rolandoislas.greedygreedy.core.event;
 
 import com.rolandoislas.greedygreedy.core.data.IDie;
 import com.rolandoislas.greedygreedy.core.data.Player;
+import com.rolandoislas.greedygreedy.core.util.AchievementHandler;
 
 import java.util.ArrayList;
 import java.util.EventListener;
@@ -26,6 +27,10 @@ public interface ControlEventListener extends EventListener {
     void gameEnd(ArrayList<Player> players);
 
     void lastRound(int lastRoundStarter);
+
+    void zilchWarning(int player);
+
+    void achievement(AchievementHandler.Achievement achievement, int player);
 
     enum Action {ROLL, STOP, DIE}
 

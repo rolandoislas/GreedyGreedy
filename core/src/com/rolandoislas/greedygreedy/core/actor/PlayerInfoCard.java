@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.utils.Align;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.data.Player;
 import com.rolandoislas.greedygreedy.core.util.TextUtil;
@@ -20,6 +21,7 @@ public class PlayerInfoCard extends Actor {
     private boolean empty;
     private boolean active;
     private boolean resizeName;
+    private boolean resizeActor;
 
     public PlayerInfoCard() {
         empty = true;
@@ -35,6 +37,9 @@ public class PlayerInfoCard extends Actor {
         tlbs.font = TextUtil.generateScaledFont(0.25f);
         tlbs.fontColor = Constants.COLOR_RED;
         tempScore = new Label("", tlbs);
+        name.setAlignment(Align.left);
+        score.setAlignment(Align.left);
+        tempScore.setAlignment(Align.left);
     }
 
     @Override
@@ -69,22 +74,30 @@ public class PlayerInfoCard extends Actor {
             }
             resizeName = false;
         }
+        if (resizeActor) {
+            float freeSpace = (getHeight() - name.getHeight() / 2 * 3);
+            float textMargin = freeSpace * .125f;
+            freeSpace -= textMargin * 2;
+            float topMargin = freeSpace / 2;
+            if (empty)
+                name.setPosition(getX() + getWidth() / 2 - name.getWidth() / 2,
+                        getY() + getHeight() / 2 - name.getHeight() / 2);
+            else
+                name.setPosition(getX() + getHeight(), getY() + getHeight() - name.getHeight() / 1.5f - topMargin);
+            score.setPosition(name.getX(), name.getY() - textMargin);
+            tempScore.setPosition(name.getX(), name.getY() - name.getHeight() / 2 - textMargin * 2);
+            resizeActor = false;
+        }
     }
 
     @Override
     protected void positionChanged() {
-        if (empty)
-            name.setPosition(getX() + getWidth() / 2 - name.getWidth() / 2,
-                    getY() + getHeight() / 2 - name.getHeight() / 2);
-        else
-            name.setPosition(getX() + getHeight(), getY() + getHeight() - name.getHeight() - getHeight() * .15f);
-        score.setPosition(name.getX(), name.getY() - name.getHeight());
-        tempScore.setPosition(score.getX(), score.getY() - name.getHeight());
+        resizeActor = true;
     }
 
     @Override
     protected void sizeChanged() {
-        positionChanged();
+        resizeActor = true;
     }
 
     @Override

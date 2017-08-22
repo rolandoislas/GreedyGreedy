@@ -3,6 +3,7 @@ package com.rolandoislas.greedygreedy.core.stage;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
 import com.rolandoislas.greedygreedy.core.util.Logger;
 
@@ -52,5 +53,9 @@ public class Stage extends com.badlogic.gdx.scenes.scene2d.Stage {
 		} catch (IllegalAccessException e) {
 			Logger.exception(e);
 		}
+	}
+
+	public void setBackgroundColor(Color color) {
+		GreedyClient.setBackgroundColor(color);
 	}
 }

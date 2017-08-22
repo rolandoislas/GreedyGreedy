@@ -3,6 +3,7 @@ package com.rolandoislas.greedygreedy.core;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.stage.Stage;
@@ -16,6 +17,7 @@ public class GreedyClient extends ApplicationAdapter {
 	public static ArgumentParser args;
 	private static Stage stage;
 	public static AchievementHandler achievementHandler;
+	private static Color backgroundColor;
 
     public GreedyClient(ArgumentParser argumentParser, AchievementHandler achievementHandler) {
 		GreedyClient.args = argumentParser;
@@ -39,8 +41,7 @@ public class GreedyClient extends ApplicationAdapter {
 	@Override
 	public void render () {
 		super.render();
-		Gdx.gl.glClearColor(Constants.COLOR_YELLOW.r, Constants.COLOR_YELLOW.g, Constants.COLOR_YELLOW.b,
-				Constants.COLOR_YELLOW.a);
+		Gdx.gl.glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		stage.draw();
@@ -87,5 +88,9 @@ public class GreedyClient extends ApplicationAdapter {
 	public void resize(int width, int height) {
 		super.resize(width, height);
 		GreedyClient.stage.resize(width, height);
+	}
+
+	public static void setBackgroundColor(Color backgroundColor) {
+		GreedyClient.backgroundColor = backgroundColor;
 	}
 }

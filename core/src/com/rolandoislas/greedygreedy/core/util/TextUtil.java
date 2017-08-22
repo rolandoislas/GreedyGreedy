@@ -6,36 +6,39 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.google.gson.Gson;
+import com.rolandoislas.greedygreedy.core.GreedyClient;
+import org.jrenner.smartfont.SmartFontGenerator;
 
 import java.util.HashMap;
-import java.util.Locale;
 
 /**
  * Created by Rolando on 2/13/2017.
  */
 public class TextUtil {
 	private static HashMap<Integer, BitmapFont> fonts = new HashMap<Integer, BitmapFont>();
+	private static SmartFontGenerator generator;
 
 	public static BitmapFont generateScaledFont(float scale) {
+		if (generator == null) {
+			generator = new SmartFontGenerator();
+			FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+			parameter.color = Color.WHITE;
+			parameter.borderColor = Color.DARK_GRAY;
+			parameter.borderWidth = Gdx.app.getType().equals(Application.ApplicationType.Desktop) ? 1 : 5;
+			generator.setParameter(parameter);
+		}
 		int size = (int) (50f * Gdx.graphics.getHeight() * scale / 720f);
 		if (fonts.containsKey(size))
 			return fonts.get(size);
-		Logger.extra("Generating font scale %f", scale);
-		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/coolvetica.ttf"));
-		FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-		parameter.size = size;
-		parameter.color = Color.WHITE;
-		parameter.borderColor = Color.DARK_GRAY;
-		parameter.borderWidth = Gdx.app.getType().equals(Application.ApplicationType.Desktop) ? 1 : 5;
-		FreeTypeFontGenerator.setMaxTextureSize(FreeTypeFontGenerator.NO_MAXIMUM);
-		BitmapFont font = generator.generateFont(parameter);
-		generator.dispose();
+		Logger.debug("Loading font: scale %f, stage %s", scale, GreedyClient.getStage().toString());
+		FileHandle fontFile = Gdx.files.internal("font/collvetica.ttf");
+		BitmapFont font =  generator.createFont(fontFile, "collvetica", size);
 		fonts.put(size, font);
 		return font;
 	}
 
 	public static void dispose() {
 		fonts.clear();
+		generator = null;
 	}
 }

@@ -25,7 +25,7 @@ import java.util.Locale;
  */
 public class StageGame extends Stage implements ControlEventListener {
     private final GameController gameController;
-    private final int numberOfPlayers;
+    private final boolean singlePlayer;
     private ArrayList<DieActor> dice;
     private ArrayList<PlayerInfoCard> playerInfoCards;
     private Label title;
@@ -35,17 +35,20 @@ public class StageGame extends Stage implements ControlEventListener {
     private MessageClearThread messageClearThread;
     private HidableLog log;
     private ImageButton buttonLog;
+    private boolean gameOver;
 
-    public StageGame(int numberOfPlayers, boolean privateGame) {
-        this.numberOfPlayers = numberOfPlayers;
-        addListener(new ClickListener());
+    public StageGame(int numberOfPlayers, boolean privateGame, boolean enableBots, GameController.GameType gameType,
+                     boolean singlePlayer) {
+        this.singlePlayer = singlePlayer;
+        // Init
+        setBackgroundColor(Constants.COLOR_YELLOW);
         createDice();
         createGui();
         createPlayers();
         createLog();
         // Start game controller
-        if (numberOfPlayers == 1) {
-            gameController = new AiController();
+        if (singlePlayer) {
+            gameController = new AiController(numberOfPlayers, gameType, enableBots, singlePlayer);
             Preferences save = PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE);
             if (save.contains(Constants.PREF_GAMESTATE_SINGLE_PLAYER) &&
                     !save.getString(Constants.PREF_GAMESTATE_SINGLE_PLAYER).isEmpty()) {
@@ -225,14 +228,8 @@ public class StageGame extends Stage implements ControlEventListener {
 
     @Override
     public void onBackButtonPressed() {
-        if (numberOfPlayers == 1) {
-            gameController.stop();
-            String gameState = gameController.saveState();
-            Preferences save = PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE);
-            save.putString(Constants.PREF_GAMESTATE_SINGLE_PLAYER, gameState);
-            save.flush();
+        if (singlePlayer)
             GreedyClient.setStage(new StageMenu());
-        }
         // Ignore back button if the game is multiplayer
         else
             setMessage(true, false, "Cannot exit multiplayer game.");
@@ -246,13 +243,6 @@ public class StageGame extends Stage implements ControlEventListener {
     @Override
     public void disConnected(String reason) {
         Logger.debug(reason);
-        if (numberOfPlayers == 1) {
-            gameController.stop();
-            String gameState = gameController.saveState();
-            Preferences save = PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE);
-            save.putString(Constants.PREF_GAMESTATE_SINGLE_PLAYER, gameState);
-            save.flush();
-        }
     }
 
     @Override
@@ -359,6 +349,7 @@ public class StageGame extends Stage implements ControlEventListener {
 
     @Override
     public void gameEnd(ArrayList<Player> players) {
+        gameOver = true;
         GreedyClient.setStage(new StagePostGame(players));
     }
 
@@ -369,9 +360,29 @@ public class StageGame extends Stage implements ControlEventListener {
     }
 
     @Override
+    public void zilchWarning(int player) {
+        setMessage(true, true, String.format(Locale.US,
+                "%s will have their points set to 0 if they zilch again.", players.get(player).getName()));
+        // TODO zilch sound
+    }
+
+    @Override
+    public void achievement(AchievementHandler.Achievement achievement, int player) {
+        if (player == whoami)
+            GreedyClient.achievementHandler.give(achievement);
+    }
+
+    @Override
     public void dispose() {
         super.dispose();
         gameController.stop();
+        // Save state
+        if (singlePlayer && !gameOver) {
+            String gameState = gameController.saveState();
+            Preferences save = PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE);
+            save.putString(Constants.PREF_GAMESTATE_SINGLE_PLAYER, gameState);
+            save.flush();
+        }
     }
 
     private int getActivePlayer() {

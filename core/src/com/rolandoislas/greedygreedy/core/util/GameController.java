@@ -21,4 +21,6 @@ public interface GameController {
     void loadState(String string);
 
     String saveState();
+
+    enum GameType {ZILCH, ANY, NORMAL}
 }

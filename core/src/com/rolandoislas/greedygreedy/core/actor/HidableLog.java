@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 
 public class HidableLog extends com.badlogic.gdx.scenes.scene2d.ui.List<String> {
     private boolean hidden;
-    private float STEP_SIZE = 1250;
     private int maxLines;
 
     public HidableLog(ListStyle style) {
@@ -14,9 +13,7 @@ public class HidableLog extends com.badlogic.gdx.scenes.scene2d.ui.List<String> 
 
     @Override
     protected void sizeChanged() {
-        GlyphLayout layout = new GlyphLayout();
-        layout.setText(getStyle().font, "0123456789!aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ");
-        maxLines = (int) Math.floor(getHeight() / (layout.height * 1.75f));
+        maxLines = (int) Math.floor(getHeight() / getItemHeight());
     }
 
     public boolean contains(float x, float y) {
@@ -35,10 +32,10 @@ public class HidableLog extends com.badlogic.gdx.scenes.scene2d.ui.List<String> 
     public void act(float delta) {
         // Hide
         if (isHidden() && getX() > -getWidth())
-            setX(getX() - STEP_SIZE * delta);
+            setX(getX() - getWidth() * 4 * delta);
         // Show
         else if (!isHidden() && getX() < 0) {
-            float x = getX() + STEP_SIZE * delta;
+            float x = getX() + getWidth() * 4 * delta;
             if (x > 0)
                 setX(0);
             else
