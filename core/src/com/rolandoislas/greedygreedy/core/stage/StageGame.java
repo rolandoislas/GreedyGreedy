@@ -1,6 +1,7 @@
 package com.rolandoislas.greedygreedy.core.stage;
 
 import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -41,7 +42,6 @@ public class StageGame extends Stage implements ControlEventListener {
                      boolean singlePlayer) {
         this.singlePlayer = singlePlayer;
         // Init
-        setBackgroundColor(Constants.COLOR_YELLOW);
         createDice();
         createGui();
         createPlayers();
@@ -395,8 +395,10 @@ public class StageGame extends Stage implements ControlEventListener {
     private class MessageClearThread extends Thread {
         @Override
         public void run() {
-            try {Thread.sleep(3000);} catch (InterruptedException ignore) {}
-            message.setText("");
+            try {
+                Thread.sleep(3000);
+                message.setText("");
+            } catch (InterruptedException ignore) {}
         }
     }
 
@@ -404,5 +406,10 @@ public class StageGame extends Stage implements ControlEventListener {
     public void act(float delta) {
         super.act(delta);
         gameController.act(delta);
+    }
+
+    @Override
+    public Color getBackgroundColor() {
+        return Constants.COLOR_YELLOW;
     }
 }

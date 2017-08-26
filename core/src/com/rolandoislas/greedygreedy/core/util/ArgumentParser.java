@@ -13,14 +13,16 @@ public class ArgumentParser {
 	public final boolean logDebug;
 	public final boolean logExtra;
 	public final boolean logVerbose;
+	public final boolean localCallback;
 
-    public ArgumentParser(String[] args) {
+	public ArgumentParser(String[] args) {
 		argsList = Arrays.asList(args);
 		if (hasOption("-h", "--help"))
 			showHelp();
 		logDebug = hasOption("-d", "--debug");
 		logExtra = hasOption("-e", "--extra", "-f", "--finer");
 		logVerbose = hasOption("-v", "--verbose");
+		localCallback = hasOption("--local-callback");
 	}
 
 	private void showHelp() {

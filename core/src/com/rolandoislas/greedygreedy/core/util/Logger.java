@@ -13,19 +13,14 @@ import java.util.logging.*;
  */
 public class Logger {
     private static final java.util.logging.Logger logger;
+    private static final ConsoleHandler consoleHandler;
 
     static {
         Level level = Level.INFO;
-        if (GreedyClient.args.logDebug)
-            level = Level.FINE;
-        else if (GreedyClient.args.logExtra)
-            level = Level.FINER;
-        else if (GreedyClient.args.logVerbose)
-            level = Level.FINEST;
         logger = java.util.logging.Logger.getLogger("GreedyGreedy");
         logger.setLevel(level);
         logger.setUseParentHandlers(false);
-        ConsoleHandler consoleHandler = new ConsoleHandler();
+        consoleHandler = new ConsoleHandler();
         consoleHandler.setLevel(level);
         consoleHandler.setFormatter(new LogFormatter());
         logger.addHandler(consoleHandler);
@@ -66,6 +61,11 @@ public class Logger {
 
     public static void verbose(String message, Object... o) {
         logger.log(Level.FINEST, message, o);
+    }
+
+    public static void setLevel(Level level) {
+        Logger.logger.setLevel(level);
+        Logger.consoleHandler.setLevel(level);
     }
 
     private static class LogFormatter extends Formatter {

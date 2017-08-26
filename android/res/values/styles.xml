@@ -9,4 +9,13 @@
         <item name="android:windowFullscreen">true</item>
     </style>
 
+    <style name="Auth0LockTheme" parent="Lock.Theme">
+        <item name="Auth0.HeaderLogo">@drawable/ic_launcher</item>
+        <item name="Auth0.HeaderTitle">@string/app_name</item>
+        <item name="Auth0.HeaderTitleColor">@color/com_auth0_lock_text</item>
+        <item name="Auth0.HeaderBackground">@color/com_auth0_lock_header_background</item>
+        <item name="Auth0.PrimaryColor">@color/com_auth0_lock_submit_normal</item>
+        <item name="Auth0.DarkPrimaryColor">@color/com_auth0_lock_submit_pressed</item>
+    </style>
+
 </resources>

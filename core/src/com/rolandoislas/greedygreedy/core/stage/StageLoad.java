@@ -32,7 +32,6 @@ public class StageLoad extends Stage {
 	 * @param doLoad should resources be loaded? It acts as a splash screen otherwise.
 	 */
 	public StageLoad(boolean doLoad) {
-		setBackgroundColor(Color.BLACK);
 		this.doLoad = doLoad;
 		// Create icon
 		icon = new Image(new Texture("image/icon_512.png")); // TODO set icon
@@ -90,5 +89,10 @@ public class StageLoad extends Stage {
 	@Override
 	public void onBackButtonPressed() {
 		Gdx.app.exit();
+	}
+
+	@Override
+	public Color getBackgroundColor() {
+		return Color.BLACK;
 	}
 }

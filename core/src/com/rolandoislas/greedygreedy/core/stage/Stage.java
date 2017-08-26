@@ -55,7 +55,7 @@ public class Stage extends com.badlogic.gdx.scenes.scene2d.Stage {
 		}
 	}
 
-	public void setBackgroundColor(Color color) {
-		GreedyClient.setBackgroundColor(color);
+	public Color getBackgroundColor() {
+		return Color.BLACK;
 	}
 }

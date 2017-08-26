@@ -29,4 +29,17 @@ public class Constants {
     public static final String PREF_CATEGORY_SAVE = "save";
     public static final String PREF_USERNAME = "username";
     public static final String PREF_GAMESTATE_SINGLE_PLAYER = "gamestateSinglePlayer";
+    public static final String PREF_ACCESS_TOKEN = "accessToken";
+    public static final String PREF_CODE_VERIFIER = "codeVerifier";
+    public static final String PREF_REFRESH_TOKEN = "refreshToken";
+    // Auth
+    public static final int LOGIN_CALLBACK_PORT = 65177;
+    public static final String AUTH0_DOMAIN = "https://greedygreedy.auth0.com/";
+    public static final String AUTH0_AUDIENCE = "https://greedygreedy.herokuapp.com/";
+    public static final String AUTH0_AUDIENCE_LOCAL = "http://localhost:5000/";
+    public static final String AUTH0_CLIENT_ID = "qrWi5pnnayfCt66DMUdNHMeGqBWh3U9X";
+    public static final String AUTH0_REDIRECT_URL = "https://greedygreedy.herokuapp.com/api/auth/callback";
+    public static final String AUTH0_REDIRECT_URL_LOCAL = "http://localhost:5000/api/auth/callback";
+    public static final String AUTH0_KEYSET = "https://greedygreedy.auth0.com/.well-known/jwks.json";
+    public static final String AUTH0_SCOPE = "offline_access";
 }

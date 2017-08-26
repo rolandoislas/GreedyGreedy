@@ -1,5 +1,6 @@
 package com.rolandoislas.greedygreedy.core.stage;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -27,7 +28,6 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
 
     public StageGameOptions(boolean singlePlayer) {
         this.singlePlayer = singlePlayer;
-        setBackgroundColor(Constants.COLOR_YELLOW);
         // Title
         Label.LabelStyle ls = new Label.LabelStyle();
         ls.font = TextUtil.generateScaledFont(1.25f);
@@ -233,7 +233,12 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         startGame(false);
     }
 
-    enum DialogResult {
+    private enum DialogResult {
         GAME_TYPE, PLAYERS
+    }
+
+    @Override
+    public Color getBackgroundColor() {
+        return Constants.COLOR_YELLOW;
     }
 }

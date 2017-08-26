@@ -3,4 +3,5 @@
 
     <string name="app_name">Greedy Greedy</string>
 
+    <string name="auth0_domain">greedygreedy.auth0.com</string>
 </resources>

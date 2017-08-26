@@ -3,7 +3,6 @@ package com.rolandoislas.greedygreedy.core.stage;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -19,8 +18,10 @@ import com.rolandoislas.greedygreedy.core.util.TextUtil;
  */
 public class StageMenu extends Stage {
 
+    private final TextButton buttonAuth;
+    private boolean hasActed;
+
     public StageMenu() {
-        setBackgroundColor(Color.BLACK);
         // Title
         Label.LabelStyle ls = new Label.LabelStyle();
         ls.font = TextUtil.generateScaledFont(1.25f);
@@ -31,7 +32,7 @@ public class StageMenu extends Stage {
         TextButton.TextButtonStyle tbs = new TextButton.TextButtonStyle();
         tbs.font = TextUtil.generateScaledFont(1);
         TextButton buttonSinglePlayer = new TextButton("Singleplayer", tbs);
-        float buttonOffset = getHeight() * .3f;
+        float buttonOffset = getHeight() * .2f;
         buttonSinglePlayer.setPosition(getWidth() / 2 - buttonSinglePlayer.getWidth() / 2,
                 title.getY() - buttonSinglePlayer.getHeight() - buttonOffset);
         buttonSinglePlayer.addListener(new ClickListener() {
@@ -52,7 +53,7 @@ public class StageMenu extends Stage {
         buttonMultiplayer.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                GreedyClient.setStage(new StageGameOptions(false));
+                    GreedyClient.setStage(new StageLogin(new StageGameOptions(false), null));
             }
         });
         addActor(buttonMultiplayer);
@@ -67,11 +68,44 @@ public class StageMenu extends Stage {
             }
         });
         addActor(buttonInfo);
+        // Auth
+        buttonAuth = new TextButton("", tbs);
+        buttonAuth.setPosition(getWidth() / 2 - buttonAuth.getWidth() / 2,
+                buttonInfo.getY() - buttonAuth.getHeight());
+        buttonAuth.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                // Logout
+                if (PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL).contains(Constants.PREF_ACCESS_TOKEN)) {
+                    GreedyClient.authenticationHandler.logout();
+                    GreedyClient.setStage(new StageMenu());
+                }
+                // Login
+                else
+                    GreedyClient.setStage(new StageLogin(new StageMenu(), null));
+            }
+        });
+        addActor(buttonAuth);
+    }
+
+    @Override
+    public void act() {
+        super.act();
+        if (!hasActed) {
+            hasActed = true;
+            buttonAuth.setText(PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL)
+                    .contains(Constants.PREF_ACCESS_TOKEN) ? "Sign Out" : "Sign In");
+        }
     }
 
     @Override
     public void onBackButtonPressed() {
         if (!Gdx.app.getType().equals(Application.ApplicationType.Desktop))
             Gdx.app.exit();
+    }
+
+    @Override
+    public Color getBackgroundColor() {
+        return Color.BLACK;
     }
 }

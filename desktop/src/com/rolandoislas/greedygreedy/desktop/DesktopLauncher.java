@@ -4,6 +4,7 @@ import com.badlogic.gdx.Files;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
+import com.rolandoislas.greedygreedy.core.auth.AuthenticationHandlerHosted;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.util.ArgumentParser;
 import com.rolandoislas.greedygreedy.desktop.util.AchievementHandler;
@@ -23,6 +24,7 @@ public class DesktopLauncher {
 		config.addIcon("image/icon_32.png", Files.FileType.Internal);
 		config.addIcon("image/icon_16.png", Files.FileType.Internal);
 
-		new LwjglApplication(new GreedyClient(new ArgumentParser(arg), new AchievementHandler()), config);
+		new LwjglApplication(new GreedyClient(new ArgumentParser(arg), new AchievementHandler(),
+				new AuthenticationHandlerHosted()), config);
 	}
 }

@@ -16,13 +16,16 @@ android {
     }
     packagingOptions {
         exclude 'META-INF/robovm/ios/robovm.xml'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/DEPENDENCIES'
     }
     defaultConfig {
-        applicationId "com.rolandislas.greedygreedy"
-        minSdkVersion 9
+        applicationId "com.rolandoislas.greedygreedy"
+        minSdkVersion 15
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders = [auth0Domain: "@string/auth0_domain", auth0Scheme: "com.rolandoislas.greedygreedy"]
     }
     buildTypes {
         release {
