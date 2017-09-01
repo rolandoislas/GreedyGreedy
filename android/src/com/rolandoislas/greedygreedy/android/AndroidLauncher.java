@@ -16,7 +16,7 @@ public class AndroidLauncher extends AndroidApplication {
 	protected void onCreate (Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-		initialize(new GreedyClient(new ArgumentParser(), new AchievementHandler(),
+		initialize(new GreedyClient(new ArgumentParser(new String[]{"-f"}), new AchievementHandler(),
 				new AuthenticationHandlerAndroid(this)), config);
 		// Auth code check
 		if (getIntent().getData() != null) {

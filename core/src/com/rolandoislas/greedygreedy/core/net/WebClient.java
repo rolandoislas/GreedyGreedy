@@ -12,8 +12,13 @@ import com.rolandoislas.greedygreedy.core.event.ControlEventListener;
 import com.rolandoislas.greedygreedy.core.util.*;
 import org.java_websocket.handshake.ServerHandshake;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
 /**
@@ -37,8 +42,9 @@ public class WebClient extends GameControllerBase implements GameController {
 
     private static URI getWebSocketUrl() {
         try {
-            return new URI((GreedyClient.args.localCallback ? Constants.AUTH0_AUDIENCE_LOCAL :
-                    Constants.AUTH0_AUDIENCE) + "socket/game");
+            String uri = (GreedyClient.args.localCallback ? Constants.AUTH0_AUDIENCE_LOCAL : Constants.AUTH0_AUDIENCE)
+                .replace("http", "ws");
+            return new URI(uri + "socket/game");
         } catch (URISyntaxException e) {
             Logger.exception(e);
             throw new RuntimeException("Zoinks! Like, hey Scoob, the hardcoded(!) web socket URI has a syntax error.");
@@ -48,6 +54,22 @@ public class WebClient extends GameControllerBase implements GameController {
     @Override
     public void start() {
         webSocket = new WebSocketClient(getWebSocketUrl());
+
+        if (webSocket.getURI().toString().startsWith("wss")) {
+            try {
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, null, null);
+                SSLSocketFactory factory = sslContext.getSocketFactory();
+                webSocket.setSocket(factory.createSocket());
+            } catch (NoSuchAlgorithmException e) {
+                Logger.exception(e);
+            } catch (KeyManagementException e) {
+                Logger.exception(e);
+            } catch (IOException e) {
+                Logger.exception(e);
+            }
+        }
+
         webSocket.connect();
     }
 
@@ -218,6 +240,7 @@ public class WebClient extends GameControllerBase implements GameController {
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
+            Logger.debug("WebClient closed. Reason: code %d - %s", code, reason);
             Gdx.app.postRunnable(new Runnable() {
                 @Override
                 public void run() {
