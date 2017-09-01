@@ -14,6 +14,12 @@ task dist(dependsOn: classes, type: Jar) {
         attributes 'Main-Class': project.mainClassName
     }
 
+    doFirst {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+
     doLast {
         delete fileTree(dir: "build", exclude: "libs")
         delete fileTree(dir: "build/libs", exclude: "*.jar")
