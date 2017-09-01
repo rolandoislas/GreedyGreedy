@@ -9,6 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
 import com.rolandoislas.greedygreedy.core.data.Constants;
+import com.rolandoislas.greedygreedy.core.ui.CallbackDialog;
+import com.rolandoislas.greedygreedy.core.ui.skin.DialogSkin;
 import com.rolandoislas.greedygreedy.core.util.GameController;
 import com.rolandoislas.greedygreedy.core.util.PreferencesUtil;
 import com.rolandoislas.greedygreedy.core.util.TextUtil;
@@ -21,7 +23,7 @@ public class StageMenu extends Stage {
     private final TextButton buttonAuth;
     private boolean hasActed;
 
-    public StageMenu() {
+    public StageMenu(String message) {
         // Title
         Label.LabelStyle ls = new Label.LabelStyle();
         ls.font = TextUtil.generateScaledFont(1.25f);
@@ -86,6 +88,16 @@ public class StageMenu extends Stage {
             }
         });
         addActor(buttonAuth);
+        // Message
+        if (message != null && !message.isEmpty()) {
+            CallbackDialog messageDialog = new CallbackDialog(message, new DialogSkin());
+            messageDialog.button("Ok");
+            messageDialog.show(this);
+        }
+    }
+
+    public StageMenu() {
+        this("");
     }
 
     @Override

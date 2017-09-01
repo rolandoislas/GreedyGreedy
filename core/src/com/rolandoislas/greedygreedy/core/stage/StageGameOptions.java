@@ -2,7 +2,8 @@ package com.rolandoislas.greedygreedy.core.stage;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
@@ -36,7 +37,7 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         addActor(title);
         // Icon
         PlayerInfoCard playerInfoCard = new PlayerInfoCard();
-        playerInfoCard.setName(PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL).getString(Constants.PREF_USERNAME));
+        playerInfoCard.setName(PreferencesUtil.getPlayerName());
         playerInfoCard.setSize(getWidth() / 2 - getWidth() / 2 * .06f, getWidth() / 6);
         playerInfoCard.setPosition(getWidth() / 2 - playerInfoCard.getWidth() / 2,
                 title.getY() - playerInfoCard.getHeight() * 1.5f);
@@ -109,7 +110,7 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
             privateGameVal.addListener(new ClickListener(){
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-                    togglePrivate();
+                    //togglePrivate(); // TODO handle private games
                 }
             });
         addActor(privateGameVal);

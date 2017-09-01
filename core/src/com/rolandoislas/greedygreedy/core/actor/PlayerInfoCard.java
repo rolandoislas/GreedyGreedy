@@ -101,7 +101,7 @@ public class PlayerInfoCard extends Actor {
     }
 
     @Override
-    public void setName(String name) { // TODO size the names better
+    public void setName(String name) {
         super.setName(name);
         this.name.setText(name);
         this.resizeName = true;

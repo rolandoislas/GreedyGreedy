@@ -10,7 +10,7 @@ import java.util.EventListener;
 public interface ControlEventListener extends EventListener {
     void connected();
 
-    void disConnected(String reason);
+    void disConnected();
 
     void dieUpdate(ArrayList<IDie> dice);
 
@@ -32,7 +32,11 @@ public interface ControlEventListener extends EventListener {
 
     void achievement(AchievementHandler.Achievement achievement, int player);
 
-    enum Action {ROLL, STOP, DIE}
+    void countdown(long milliseconds);
 
-    enum FailReason {NO_PLAYABLE_VALUES, NO_SELECTION, NO_SCORE, NOT_ENOUGH_POINTS, TURN_NOT_STARTED}
+    void rollSuccess();
+
+    enum Action {ROLL, STOP, TURN, DIE}
+
+    enum FailReason {NO_PLAYABLE_VALUES, NO_SELECTION, NO_SCORE, NOT_ENOUGH_POINTS, TIME_UP, TURN_NOT_STARTED}
 }

@@ -11,6 +11,7 @@ import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.net.GreedyApi;
 import com.rolandoislas.greedygreedy.core.net.LoginCallbackHandler;
 import com.rolandoislas.greedygreedy.core.stage.StageMenu;
+import com.rolandoislas.greedygreedy.core.util.GreedyException;
 import com.rolandoislas.greedygreedy.core.util.Logger;
 import com.rolandoislas.greedygreedy.core.util.PreferencesUtil;
 import org.apache.commons.codec.binary.Base64;
@@ -105,6 +106,8 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
             preferences.remove(Constants.PREF_ACCESS_TOKEN);
         if (preferences.contains(Constants.PREF_REFRESH_TOKEN))
             preferences.remove(Constants.PREF_REFRESH_TOKEN);
+        if (preferences.contains(Constants.PREF_USER_INFO))
+            preferences.remove(Constants.PREF_USER_INFO);
         preferences.flush();
     }
 
@@ -114,10 +117,18 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
     }
 
     public static void saveCredentials(String accessToken, String refreshToken) {
-        Preferences preferences = PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL);
+        final Preferences preferences = PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL);
         preferences.putString(Constants.PREF_ACCESS_TOKEN, accessToken);
         if (refreshToken != null && !refreshToken.isEmpty())
             preferences.putString(Constants.PREF_REFRESH_TOKEN, refreshToken);
+        String userInfo = null;
+        try {
+            userInfo = GreedyApi.getUserInfo();
+        } catch (GreedyException e) {
+            Logger.exception(e);
+        }
+        if (userInfo != null && !userInfo.isEmpty())
+            preferences.putString(Constants.PREF_USER_INFO, userInfo);
         preferences.flush();
     }
 
@@ -165,11 +176,16 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
                 return;
             }
             // Check a cached token
-            String accessToken = preferences.getString(Constants.PREF_ACCESS_TOKEN);
-            if (!accessToken.isEmpty()) {
-                if (GreedyApi.confirmToken(accessToken)) {
-                    if (!onlyRefresh)
-                        Gdx.app.postRunnable(loginSuccess);
+            if (PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL).contains(Constants.PREF_ACCESS_TOKEN)) {
+                try {
+                    if (GreedyApi.confirmToken()) {
+                        if (!onlyRefresh)
+                            Gdx.app.postRunnable(loginSuccess);
+                        return;
+                    }
+                } catch (GreedyException e) {
+                    Logger.exception(e);
+                    fail("API connection failed");
                     return;
                 }
             }
@@ -208,7 +224,7 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
             }
             // No auth code or refresh token
             else {
-                fail();
+                fail("Unknown error");
                 return;
             }
             // Perform the request
@@ -230,7 +246,7 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
                 if (preferences.contains(Constants.PREF_ACCESS_TOKEN))
                     preferences.remove(Constants.PREF_ACCESS_TOKEN);
                 preferences.flush();
-                fail();
+                fail("Failed to authenticate");
                 return;
             }
             // Save the token and initiate the login callback
@@ -241,20 +257,20 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
             }
             catch (JSONException e) {
                 Logger.exception(e);
-                fail();
+                fail("Auth server error");
                 return;
             }
             if (!onlyRefresh)
                 Gdx.app.postRunnable(loginSuccess);
         }
 
-        private void fail() {
+        private void fail(final String message) {
             if (onlyRefresh)
                 return;
             Gdx.app.postRunnable(new Runnable() {
                 @Override
                 public void run() {
-                    GreedyClient.setStage(new StageMenu());
+                    GreedyClient.setStage(new StageMenu(message));
                 }
             });
         }

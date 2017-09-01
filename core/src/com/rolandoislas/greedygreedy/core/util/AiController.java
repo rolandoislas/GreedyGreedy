@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.data.Die;
-import com.rolandoislas.greedygreedy.core.data.IDie;
 import com.rolandoislas.greedygreedy.core.data.Player;
 import com.rolandoislas.greedygreedy.core.event.ControlEventListener;
 
@@ -14,7 +13,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class AiController implements GameController {
+public class AiController extends GameControllerBase implements GameController {
     private static final int[] SCORE_THREE_OR_MORE = new int[] {1000, 200, 300, 400, 500, 600};
     private static final int SCORE_ONE = 100;
     private static final int SCORE_FIVE = 50;
@@ -26,7 +25,6 @@ public class AiController implements GameController {
     private int numberOfPlayers;
     private GameType gameType;
     private boolean enableBots;
-    private ArrayList<ControlEventListener> eventListeners = new ArrayList<ControlEventListener>();
     private ArrayList<Player> players = new ArrayList<Player>();
     private Random random = new Random();
     private ArrayList<Die> dice = new ArrayList<Die>();
@@ -36,36 +34,34 @@ public class AiController implements GameController {
     private int lastRoundStarter;
     private boolean handleActions;
     private ReentrantLock mutex = new ReentrantLock();
+    private ArrayList<String> names;
+    private boolean gameOver;
 
     public AiController(int numberOfPlayers, GameType gameType, boolean enableBots, boolean singlePlayer) {
         this.numberOfPlayers = numberOfPlayers;
         this.gameType = gameType;
         this.enableBots = enableBots;
         this.singlePlayer = singlePlayer;
-    }
-
-    @Override
-    public void addListener(ControlEventListener controlEventListener) {
-        eventListeners.add(controlEventListener);
+        names = new ArrayList<String>();
     }
 
     @Override
     public void start() {
-        for (ControlEventListener listener :
-                eventListeners) {
-            listener.connected();
-            listener.whoami(0);
+        if (singlePlayer) {
+            sendConnected();
+            sendWhoami(0);
         }
         if (players.size() == 0)
             populatePlayers();
         if (dice.size() == 0)
             resetDice();
-        sendPlayerUpdate();
         handleActions = true;
         // Send the state
-        sendPlayerUpdate();
-        sendDieUpdate();
-        sendActivePoints();
+        if (singlePlayer) {
+            sendPlayerUpdate(players);
+            sendDieUpdate(dice);
+            sendActivePoints(activePoints);
+        }
     }
 
     private void resetDice() {
@@ -84,6 +80,8 @@ public class AiController implements GameController {
             mutex.unlock();
             return;
         }
+        if (dieNum >= dice.size() || dieNum < 0)
+            return;
         Die die = dice.get(dieNum);
         if (!die.isLocked()) {
             if (die.isSelected()) {
@@ -93,7 +91,16 @@ public class AiController implements GameController {
                 die.setSelected(true);
             }
         }
-        sendDieUpdate();
+        sendDieUpdate(dice);
+        // Send the current active points
+        ArrayList<Integer> selected = new ArrayList<Integer>();
+        for (Die sdie : dice)
+            if (sdie.isSelected())
+                selected.add(sdie.getFace());
+        int rollScore = activePoints;
+        if (selected.size() > 0)
+            rollScore += scoreSelected(selected);
+        sendActivePoints(rollScore);
         mutex.unlock();
     }
 
@@ -116,7 +123,7 @@ public class AiController implements GameController {
                 sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_PLAYABLE_VALUES);
                 handleZilch(true);
                 setNextPlayerActive();
-                sendPlayerUpdate();
+                sendPlayerUpdate(players);
             }
         }
         // Start a roll
@@ -169,10 +176,12 @@ public class AiController implements GameController {
                 activePoints = 0;
                 setNextPlayerActive();
             }
-            sendActivePoints();
-            sendPlayerUpdate();
+            else
+                sendRollSuccess();
+            sendActivePoints(activePoints);
+            sendPlayerUpdate(players);
         }
-        sendDieUpdate();
+        sendDieUpdate(dice);
         mutex.unlock();
     }
 
@@ -250,9 +259,9 @@ public class AiController implements GameController {
             sendAchievement(AchievementHandler.Achievement.FIRST_SCORE, getActivePlayer());
         handleZilch(false);
         setNextPlayerActive();
-        sendActivePoints();
-        sendPlayerUpdate();
-        sendDieUpdate();
+        sendActivePoints(activePoints);
+        sendPlayerUpdate(players);
+        sendDieUpdate(dice);
         mutex.unlock();
     }
 
@@ -344,6 +353,8 @@ public class AiController implements GameController {
         Gson gson = new Gson();
         JsonObject save = gson.fromJson(saveJson, JsonObject.class);
         players = gson.fromJson(save.get("players").getAsString(), new TypeToken<ArrayList<Player>>(){}.getType());
+        if (singlePlayer)
+            players.get(0).setName(PreferencesUtil.getPlayerName());
         dice = gson.fromJson(save.get("dice").getAsString(), new TypeToken<ArrayList<Die>>(){}.getType());
         turnStarted = save.get("turnStarted").getAsBoolean();
         activePoints = save.get("activePoints").getAsInt();
@@ -354,6 +365,7 @@ public class AiController implements GameController {
         gameType = GameType.values()[save.get("gameType").getAsInt()];
         enableBots = save.get("enableBots").getAsBoolean();
         singlePlayer = save.get("singlePlayer").getAsBoolean();
+        gameOver = save.get("gameOver").getAsBoolean();
     }
 
     @Override
@@ -371,6 +383,7 @@ public class AiController implements GameController {
         save.addProperty("gameType", gameType.ordinal());
         save.addProperty("enableBots", enableBots);
         save.addProperty("singlePlayer", singlePlayer);
+        save.addProperty("gameOver", gameOver);
         return gson.toJson(save);
     }
 
@@ -451,7 +464,7 @@ public class AiController implements GameController {
             if (player.getScore() >= SCORE_WIN && !lastRound) {
                 lastRound = true;
                 lastRoundStarter = players.indexOf(player);
-                sendLastRound();
+                sendLastRound(lastRoundStarter);
                 break;
             }
         }
@@ -469,20 +482,27 @@ public class AiController implements GameController {
         if (lastRound && lastRoundStarter == currentPlayer) {
             lastRound = false;
             handleActions = false;
-            sendPlayerUpdate();
-            sendWinner();
+            sendPlayerUpdate(players);
+            calculateAndSendWinner();
         }
         // Zilch warning
         else if (players.get(currentPlayer).getZilchAmount() == ZILCH_MAX)
             sendZilchWarning(getActivePlayer());
     }
 
-    private void sendLastRound() {
-        for (ControlEventListener listener : eventListeners)
-            listener.lastRound(lastRoundStarter);
+    /**
+     * Forces the current player to zilch then sets the next one as the active player.
+     */
+    public void forceNextPlayerActive() {
+        activePoints = 0;
+        sendAchievement(AchievementHandler.Achievement.TIME_UP, getActivePlayer());
+        sendFailUpdate(ControlEventListener.Action.TURN, ControlEventListener.FailReason.TIME_UP);
+        handleZilch(true);
+        setNextPlayerActive();
+        sendPlayerUpdate(players);
     }
 
-    private void sendWinner() {
+    private void calculateAndSendWinner() {
         // Order players
         Player[] order = new Player[players.size()];
         for (int playerOrder = 0; playerOrder < players.size(); playerOrder++) {
@@ -502,8 +522,8 @@ public class AiController implements GameController {
         sendAchievement(AchievementHandler.Achievement.WIN, players.indexOf(order[0]));
         if (players.indexOf(order[0]) != lastRoundStarter)
             sendAchievement(AchievementHandler.Achievement.WIN_LAST_ROUND, players.indexOf(order[0]));
-        for (ControlEventListener listener : eventListeners)
-            listener.gameEnd(new ArrayList<Player>(Arrays.asList(order)));
+        gameOver = true;
+        sendWinner(new ArrayList<Player>(Arrays.asList(order)));
     }
 
     private boolean contains(Object[] objs, Object o) {
@@ -511,11 +531,6 @@ public class AiController implements GameController {
             if (oo != null && oo.equals(o))
                 return true;
         return false;
-    }
-
-    private void sendTurnEnd(int player, int points) {
-        for (ControlEventListener listener : eventListeners)
-            listener.turnEnd(player, points);
     }
 
     private boolean diceHavePlayableValue() {
@@ -539,12 +554,17 @@ public class AiController implements GameController {
     private void populatePlayers() {
         for (int playerNum = 0; playerNum < numberOfPlayers; playerNum++) {
             Player human = new Player();
-            if (singlePlayer && playerNum == 0)
-                human.setName(PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL).getString(Constants.PREF_USERNAME));
+            if (singlePlayer && playerNum == 0) {
+                human.setName(PreferencesUtil.getPlayerName());
+            }
             if (playerNum == 0)
                 human.setActive(true);
+            if (getNames().size() > playerNum)
+                human.setName(getNames().get(playerNum));
             players.add(human);
         }
+        if (!enableBots)
+            return;
         for (int playerNum = numberOfPlayers; playerNum < Constants.MAX_PLAYERS; playerNum++) {
             Player bot = new Player();
             bot.setBot(true);
@@ -554,33 +574,11 @@ public class AiController implements GameController {
         }
     }
 
-    private void sendActivePoints() {
-        for (ControlEventListener listener : eventListeners)
-            listener.activePoints(activePoints);
+    public void setNames(ArrayList<String> names) {
+        this.names = names;
     }
 
-    private void sendFailUpdate(final ControlEventListener.Action action, final ControlEventListener.FailReason failReason) {
-        for (ControlEventListener listener : eventListeners)
-            listener.actionFailed(action, failReason);
-    }
-
-    private void sendPlayerUpdate() {
-        for (ControlEventListener listener : eventListeners)
-            listener.playerUpdate(new ArrayList<Player>(players));
-    }
-
-    private void sendDieUpdate() {
-        for (ControlEventListener listener : eventListeners)
-            listener.dieUpdate(new ArrayList<IDie>(dice));
-    }
-
-    private void sendZilchWarning(int player) {
-        for (ControlEventListener listener : eventListeners)
-            listener.zilchWarning(player);
-    }
-
-    private void sendAchievement(AchievementHandler.Achievement achievement, int player) {
-        for (ControlEventListener listener : eventListeners)
-            listener.achievement(achievement, player);
+    public ArrayList<String> getNames() {
+        return names;
     }
 }

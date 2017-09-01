@@ -1,8 +1,11 @@
 package com.rolandoislas.greedygreedy.server;
 
+import com.goebl.david.Webb;
+import com.goebl.david.WebbException;
 import com.google.gson.JsonObject;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.server.util.AuthUtil;
+import org.json.JSONObject;
 import spark.*;
 import spark.template.handlebars.HandlebarsTemplateEngine;
 
@@ -10,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-class GreedySparkServer {
+public class GreedySparkServer {
     static String handleAuthCallback(Request request, Response response) {
         response.type("text/html");
         String code = "";
@@ -34,13 +37,8 @@ class GreedySparkServer {
     }
 
     static String handleAuthTokenVerify(Request request, Response response) {
-        if (!request.headers().contains("Authentication"))
-            badRequest("Missing authentication header");
-        String[] auth = request.headers("Authentication").split(" ");
-        if (auth.length != 2 || auth[1].isEmpty())
-            badRequest("Invalid authentication header syntax");
         JsonObject jsonObject = new JsonObject();
-        jsonObject.addProperty("valid", AuthUtil.verify(auth[1]));
+        jsonObject.addProperty("valid", AuthUtil.verify(request));
         return jsonObject.toString();
     }
 
@@ -59,5 +57,24 @@ class GreedySparkServer {
 
     private static void unauthorized() {
         throw halt(401, "Unauthorized");
+    }
+
+    static String handleUserInfoRequest(Request request, Response response) {
+        if (!AuthUtil.verify(request))
+            unauthorized();
+        return getUserInfo(AuthUtil.extractToken(request));
+    }
+
+    public static String getUserInfo(String token) {
+        Webb webb = Webb.create();
+        com.goebl.david.Response<JSONObject> webbResponse;
+        try {
+            webbResponse = webb.get(Constants.AUTH0_DOMAIN + "userinfo")
+                    .header("Authorization", "Bearer " + token)
+                    .ensureSuccess().asJsonObject();
+        } catch (WebbException e) {
+            throw halt(e.getResponse().getStatusCode(), e.getResponse().getStatusLine());
+        }
+        return webbResponse.getBody().toString();
     }
 }

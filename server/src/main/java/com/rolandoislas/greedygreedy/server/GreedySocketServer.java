@@ -1,38 +1,44 @@
 package com.rolandoislas.greedygreedy.server;
 
-import com.rolandoislas.greedygreedy.core.util.Logger;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.*;
 
-import java.io.IOException;
+import static com.rolandoislas.greedygreedy.server.GreedyServer.gameHandler;
 
 @WebSocket
 public class GreedySocketServer {
+    private Gson gson = new Gson();
+
     @OnWebSocketConnect
     public void onConnect(Session socket) throws Exception {
-
+        gameHandler.addClient(socket);
     }
 
     @OnWebSocketClose
     public void onClose(Session socket, int statusCode, String reason) {
-
+        gameHandler.removeClient(socket);
     }
 
     @OnWebSocketMessage
     public void onMessage(Session socket, String message) {
-
+        JsonObject json;
+        try {
+            json = gson.fromJson(message, JsonObject.class);
+        }
+        catch (JsonSyntaxException e) {
+            return;
+        }
+        if (!json.has("command"))
+            return;
+        gameHandler.handleCommand(socket, json);
     }
 
     @OnWebSocketError
     public void onError(Session socket, Throwable error) {
-
+        gameHandler.removeClient(socket);
     }
 
-    private void send(Session socket, String message) {
-        try {
-            socket.getRemote().sendString(message);
-        } catch (IOException e) {
-            Logger.exception(e);
-        }
-    }
 }

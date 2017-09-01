@@ -24,6 +24,7 @@ public class Constants {
     public static final Color COLOR_WHITE = Color.WHITE;
     // Game
     public static final int MAX_PLAYERS = 6;
+    public static long TURN_TIME = 60 * 1000;
     // Preferences
     public static final String PREF_CATEGORY_GENERAL = "general";
     public static final String PREF_CATEGORY_SAVE = "save";
@@ -32,6 +33,7 @@ public class Constants {
     public static final String PREF_ACCESS_TOKEN = "accessToken";
     public static final String PREF_CODE_VERIFIER = "codeVerifier";
     public static final String PREF_REFRESH_TOKEN = "refreshToken";
+    public static final String PREF_USER_INFO = "userInfo";
     // Auth
     public static final int LOGIN_CALLBACK_PORT = 65177;
     public static final String AUTH0_DOMAIN = "https://greedygreedy.auth0.com/";
@@ -41,5 +43,22 @@ public class Constants {
     public static final String AUTH0_REDIRECT_URL = "https://greedygreedy.herokuapp.com/api/auth/callback";
     public static final String AUTH0_REDIRECT_URL_LOCAL = "http://localhost:5000/api/auth/callback";
     public static final String AUTH0_KEYSET = "https://greedygreedy.auth0.com/.well-known/jwks.json";
-    public static final String AUTH0_SCOPE = "offline_access";
+    public static final String AUTH0_SCOPE = "openid profile offline_access";
+    // Command
+    public static final int COMMAND_REGISTER = 0;
+    public static final int COMMAND_CLICK_DIE = 1;
+    public static final int COMMAND_CLICK_ROLL = 2;
+    public static final int COMMAND_CLICK_STOP = 3;
+    public static final int COMMAND_WHOAMI = 4;
+    public static final int COMMAND_PLAYER_UPDATE = 5;
+    public static final int COMMAND_DICE_UPDATE = 6;
+    public static final int COMMAND_TURN_END = 7;
+    public static final int COMMAND_ACTION_FAILED = 8;
+    public static final int COMMAND_ACTIVE_POINTS = 9;
+    public static final int COMMAND_GAME_END = 10;
+    public static final int COMMAND_LAST_ROUND = 11;
+    public static final int COMMAND_ZILCH_WARNING = 12;
+    public static final int COMMAND_ACHIEVEMENT = 13;
+    public static final int COMMAND_COUNTDOWN = 14;
+    public static final int COMMAND_ROLL_SUCCESS = 15;
 }

@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
+import com.rolandoislas.greedygreedy.core.actor.Countdown;
 import com.rolandoislas.greedygreedy.core.actor.DieActor;
 import com.rolandoislas.greedygreedy.core.actor.HidableLog;
 import com.rolandoislas.greedygreedy.core.actor.PlayerInfoCard;
@@ -15,7 +16,10 @@ import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.data.IDie;
 import com.rolandoislas.greedygreedy.core.data.Player;
 import com.rolandoislas.greedygreedy.core.event.ControlEventListener;
+import com.rolandoislas.greedygreedy.core.event.DialogCallbackHandler;
 import com.rolandoislas.greedygreedy.core.net.WebClient;
+import com.rolandoislas.greedygreedy.core.ui.CallbackDialog;
+import com.rolandoislas.greedygreedy.core.ui.skin.DialogSkin;
 import com.rolandoislas.greedygreedy.core.util.*;
 
 import java.util.ArrayList;
@@ -24,7 +28,7 @@ import java.util.Locale;
 /**
  * Created by rolando on 7/16/17.
  */
-public class StageGame extends Stage implements ControlEventListener {
+public class StageGame extends Stage implements ControlEventListener, DialogCallbackHandler {
     private final GameController gameController;
     private final boolean singlePlayer;
     private ArrayList<DieActor> dice;
@@ -37,6 +41,12 @@ public class StageGame extends Stage implements ControlEventListener {
     private HidableLog log;
     private ImageButton buttonLog;
     private boolean gameOver;
+    private CallbackDialog connectingDialog;
+    private boolean connected;
+    private CallbackDialog searchingDialog;
+    private boolean searching;
+    private int reconnects;
+    private Countdown countdown;
 
     public StageGame(int numberOfPlayers, boolean privateGame, boolean enableBots, GameController.GameType gameType,
                      boolean singlePlayer) {
@@ -46,6 +56,7 @@ public class StageGame extends Stage implements ControlEventListener {
         createGui();
         createPlayers();
         createLog();
+        createDialogs();
         // Start game controller
         if (singlePlayer) {
             gameController = new AiController(numberOfPlayers, gameType, enableBots, singlePlayer);
@@ -58,7 +69,7 @@ public class StageGame extends Stage implements ControlEventListener {
             }
         }
         else
-            gameController = new WebClient(numberOfPlayers, privateGame);
+            gameController = new WebClient(numberOfPlayers, privateGame, gameType, enableBots);
         gameController.addListener(this);
         gameController.start();
         // Click listener
@@ -70,11 +81,21 @@ public class StageGame extends Stage implements ControlEventListener {
         });
     }
 
+    private void createDialogs() {
+        // Connecting dialog
+        connectingDialog = new CallbackDialog("Connecting to server", new DialogSkin());
+        if (!singlePlayer)
+            connectingDialog.show(this);
+        // Searching dialog
+        searchingDialog = new CallbackDialog("Searching for game", new DialogSkin());
+        searchingDialog.button("Cancel", "search:cancel");
+    }
+
     private void stageClicked(InputEvent event, float x, float y) {
-        if (!log.isHidden())
+        if (!log.isHidden() || !connected)
             log.setHidden(true);
-        else if (log.isHidden() && x >= buttonLog.getX() && x <= buttonLog.getX() + getWidth() && y >= buttonLog.getY() &&
-                y <= buttonLog.getY() + buttonLog.getHeight())
+        else if (log.isHidden() && x >= buttonLog.getX() && x <= buttonLog.getX() + buttonLog.getWidth() &&
+                y >= buttonLog.getY() && y <= buttonLog.getY() + buttonLog.getHeight())
             log.setHidden(false);
     }
 
@@ -136,8 +157,9 @@ public class StageGame extends Stage implements ControlEventListener {
         TextButton.TextButtonStyle tbs = new TextButton.TextButtonStyle();
         tbs.font = TextUtil.generateScaledFont(1);
         TextButton buttonRoll = new TextButton("Roll", tbs);
-        DieActor die = dice.get(1);
-        buttonRoll.setPosition(die.getX() + die.getWidth() / 2 - buttonRoll.getWidth() / 2,
+        buttonRoll.align(Align.right);
+        DieActor die = dice.get(0);
+        buttonRoll.setPosition(getWidth() / 2 - buttonRoll.getWidth() - die.getWidth() / 2,
                 die.getY() - buttonRoll.getHeight());
         buttonRoll.addListener(new ClickListener(){
             @Override
@@ -148,8 +170,8 @@ public class StageGame extends Stage implements ControlEventListener {
         addActor(buttonRoll);
         // Stop button
         TextButton buttonStop = new TextButton("Stop", tbs);
-        die = dice.get(3);
-        buttonStop.setPosition(die.getX() + die.getWidth() / 2 - buttonStop.getWidth() / 2,
+        buttonStop.align(Align.left);
+        buttonStop.setPosition(getWidth() / 2 + die.getWidth() / 2,
                 die.getY() - buttonStop.getHeight());
         buttonStop.addListener(new ClickListener(){
             @Override
@@ -158,6 +180,11 @@ public class StageGame extends Stage implements ControlEventListener {
             }
         });
         addActor(buttonStop);
+        // Countdown
+        countdown = new Countdown();
+        countdown.setSize(die.getWidth() / 2, die.getHeight() / 2);
+        countdown.setPosition(getWidth() / 2, buttonRoll.getY() + buttonRoll.getHeight() / 2);
+        addActor(countdown);
         // Message
         Label.LabelStyle lsm = new Label.LabelStyle();
         lsm.font = TextUtil.generateScaledFont(0.5f);
@@ -218,7 +245,7 @@ public class StageGame extends Stage implements ControlEventListener {
     }
 
     private boolean isPlayersTurn() {
-        return players.get(whoami).isActive();
+        return players != null && players.size() != 0 && whoami < players.size() && players.get(whoami).isActive();
     }
 
     @Override
@@ -231,18 +258,35 @@ public class StageGame extends Stage implements ControlEventListener {
         if (singlePlayer)
             GreedyClient.setStage(new StageMenu());
         // Ignore back button if the game is multiplayer
-        else
-            setMessage(true, false, "Cannot exit multiplayer game.");
+        else {
+            if (searching)
+                GreedyClient.setStage(new StageMenu());
+            else
+                setMessage(true, false, "Cannot exit multiplayer game.");
+        }
     }
 
     @Override
     public void connected() {
-
+        connected = true;
+        reconnects = 0;
+        connectingDialog.hide();
+        if (!singlePlayer)
+            searchingDialog.show(this);
     }
 
     @Override
-    public void disConnected(String reason) {
-        Logger.debug(reason);
+    public void disConnected() {
+        connected = false;
+        if (gameOver)
+            return;
+        connectingDialog.show(this);
+        if (reconnects >= 3)
+            GreedyClient.setStage(new StageMenu());
+        else {
+            gameController.start();
+            reconnects++;
+        }
     }
 
     @Override
@@ -261,6 +305,8 @@ public class StageGame extends Stage implements ControlEventListener {
     @Override
     public void whoami(int playerNum) {
         this.whoami = playerNum;
+        this.searchingDialog.hide();
+        searching = false;
     }
 
     @Override
@@ -279,7 +325,7 @@ public class StageGame extends Stage implements ControlEventListener {
             case ROLL:
                 switch (failReason) {
                     case NO_PLAYABLE_VALUES:
-                        setMessage(false, false, "Ziltch!"); // TODO log it and get current players name
+                        setMessage(false, false, "Ziltch!");
                         break;
                     case NO_SELECTION:
                         setMessage(false, false, "No dice selected!");
@@ -302,6 +348,15 @@ public class StageGame extends Stage implements ControlEventListener {
                         break;
                     case NO_SELECTION:
                         setMessage(false, false, "Selection is invalid.");
+                        break;
+                    default:
+                        Logger.debug("Unhandled failed reason: %s for action %s", failReason.toString(),
+                                action.toString());
+                }
+                break;
+            case TURN:
+                switch (failReason) {
+                    case TIME_UP:
                         break;
                     default:
                         Logger.debug("Unhandled failed reason: %s for action %s", failReason.toString(),
@@ -350,6 +405,7 @@ public class StageGame extends Stage implements ControlEventListener {
     @Override
     public void gameEnd(ArrayList<Player> players) {
         gameOver = true;
+        gameController.stop();
         GreedyClient.setStage(new StagePostGame(players));
     }
 
@@ -373,6 +429,16 @@ public class StageGame extends Stage implements ControlEventListener {
     }
 
     @Override
+    public void countdown(long milliseconds) {
+        this.countdown.setTime(milliseconds);
+    }
+
+    @Override
+    public void rollSuccess() {
+        // TODO play roll sound
+    }
+
+    @Override
     public void dispose() {
         super.dispose();
         gameController.stop();
@@ -390,6 +456,18 @@ public class StageGame extends Stage implements ControlEventListener {
             if (player.isActive())
                 return players.indexOf(player);
         return -1;
+    }
+
+    @Override
+    public void dialogResult(Object object) {
+        if (object.toString().equals("search:cancel")) {
+            GreedyClient.setStage(new StageMenu());
+            return;
+        }
+        if (connected)
+            connectingDialog.hide();
+        else
+            connectingDialog.show(this);
     }
 
     private class MessageClearThread extends Thread {
