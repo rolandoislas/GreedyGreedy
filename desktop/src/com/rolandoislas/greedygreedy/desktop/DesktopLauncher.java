@@ -8,6 +8,7 @@ import com.rolandoislas.greedygreedy.core.auth.AuthenticationHandlerHosted;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.util.ArgumentParser;
 import com.rolandoislas.greedygreedy.desktop.util.AchievementHandler;
+import com.rolandoislas.greedygreedy.desktop.util.AdHandler;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
@@ -25,6 +26,6 @@ public class DesktopLauncher {
 		config.addIcon("image/icon_16.png", Files.FileType.Internal);
 
 		new LwjglApplication(new GreedyClient(new ArgumentParser(arg), new AchievementHandler(),
-				new AuthenticationHandlerHosted()), config);
+				new AuthenticationHandlerHosted(), new AdHandler()), config);
 	}
 }

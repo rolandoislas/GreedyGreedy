@@ -1,7 +1,5 @@
 package com.rolandoislas.greedygreedy.core.actor;
 
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-
 public class HidableLog extends com.badlogic.gdx.scenes.scene2d.ui.List<String> {
     private boolean hidden;
     private int maxLines;

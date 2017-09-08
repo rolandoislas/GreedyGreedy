@@ -1,0 +1,83 @@
+{{>partial/header.hbs}}
+
+{{>partial/nav.hbs}}
+
+<h1 class="title">Greedy Greedy</h1>
+<h2 class="sub-title">Farkle, Zilch, 10000 Dice: A Game of Dice</h2>
+<br>
+<h2 class="sub-title version"></h2>
+
+<div>
+    <div class="button button-tall">
+        <a class="dl-win" href="https://github.com/rolandoislas/GreedyGreedy/releases/latest">Windows</a>
+    </div>
+    <div class="button button-tall button-green">
+        <a class="dl-osx" href="https://github.com/rolandoislas/GreedyGreedy/releases/latest">Mac</a>
+    </div>
+    <div class="button button-tall button-blue">
+        <a class="dl-lin" href="https://github.com/rolandoislas/GreedyGreedy/releases/latest">Linux</a>
+    </div>
+    <div class="button button-tall button-red">
+        <a href="https://play.google.com/store/apps/details?id=com.rolandoislas.greedygreedy">Android</a>
+    </div>
+    <div class="button button-tall button-purple">
+        <a href="/game">Web</a>
+    </div>
+</div>
+
+<script>
+    var request = new XMLHttpRequest();
+    request.onloadend = function () {
+        var json = JSON.parse(request.responseText);
+        if (!Array.isArray(json))
+            return;
+        for (var releaseNum = 0; releaseNum < json.length; releaseNum++) {
+            var release = json[releaseNum];
+            if (!"prerelease" in release || !"assets" in release || !"name" in release || !"tag_name" in release)
+                return;
+            if (release["prerelease"])
+                continue;
+            // Set download urls
+            for (var assetNum = 0; assetNum < release["assets"].length; assetNum++) {
+                var asset = release["assets"][assetNum];
+                // Windows
+                if (asset["browser_download_url"].indexOf("win32.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf("win64.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf("win.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf("win.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf("windows.zip") !== -1) {
+                    var winDls = document.getElementsByClassName("dl-win");
+                    for (var winElement = 0; winElement < winDls.length; winElement++)
+                        winDls[winElement].href = asset["browser_download_url"];
+                }
+                // OSX
+                if (asset["browser_download_url"].indexOf("osx.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf("mac.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf(".dmg") !== -1) {
+                    var osxDls = document.getElementsByClassName("dl-osx");
+                    for (var osxElement = 0; osxElement < osxDls.length; osxElement++)
+                        osxDls[osxElement].href = asset["browser_download_url"];
+                }
+                // Linux
+                console.log(asset["browser_download_url"]);
+                if (asset["browser_download_url"].indexOf("linux.zip") !== -1 ||
+                        asset["browser_download_url"].indexOf(".jar") !== -1) {
+                    var linDls = document.getElementsByClassName("dl-lin");
+                    for (var linElement = 0; linElement < linDls.length; linElement++)
+                        linDls[linElement].href = asset["browser_download_url"];
+                }
+            }
+            // Version
+            var versionElements = document.getElementsByClassName("version");
+            for (var verElement = 0; verElement < versionElements.length; verElement++)
+                versionElements[verElement].innerHTML = release["name"] + " - " + release["tag_name"];
+            break;
+        }
+    };
+    window.onload = function () {
+        request.open("GET", "https://api.github.com/repos/rolandoislas/greedygreedy/releases", true);
+        request.send();
+    };
+</script>
+
+{{>partial/footer.hbs}}

@@ -5,8 +5,11 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.pay.*;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.auth.AuthenticationHandler;
+import com.rolandoislas.greedygreedy.core.data.GreedyPurchaseManagerConfig;
+import com.rolandoislas.greedygreedy.core.event.GreedyPurchaseObserver;
 import com.rolandoislas.greedygreedy.core.stage.Stage;
 import com.rolandoislas.greedygreedy.core.stage.StageLoad;
 import com.rolandoislas.greedygreedy.core.util.*;
@@ -14,16 +17,18 @@ import com.rolandoislas.greedygreedy.core.util.*;
 import java.util.logging.Level;
 
 public class GreedyClient extends ApplicationAdapter {
+	public static AdHandler adHandler;
 	public static ArgumentParser args;
 	private static Stage stage;
 	public static AchievementHandler achievementHandler;
 	public static AuthenticationHandler authenticationHandler;
 
-    public GreedyClient(ArgumentParser argumentParser, AchievementHandler achievementHandler,
-						AuthenticationHandler authenticationHandler) {
+	public GreedyClient(ArgumentParser argumentParser, AchievementHandler achievementHandler,
+						AuthenticationHandler authenticationHandler, AdHandler adHandler) {
 		GreedyClient.args = argumentParser;
 		GreedyClient.achievementHandler = achievementHandler;
 		GreedyClient.authenticationHandler = authenticationHandler;
+		GreedyClient.adHandler = adHandler;
 		// Init logger
 		if (GreedyClient.args.logDebug)
 			Logger.setLevel(Level.FINE);
@@ -41,6 +46,14 @@ public class GreedyClient extends ApplicationAdapter {
 	@Override
 	public void create () {
 		stage = new StageLoad(true);
+		loadPurchaseSystem();
+	}
+
+	private void loadPurchaseSystem() {
+		PurchaseSystem.onAppRestarted();
+		if (PurchaseSystem.hasManager()) {
+			PurchaseSystem.install(new GreedyPurchaseObserver(), new GreedyPurchaseManagerConfig());
+		}
 	}
 
 	@Override
@@ -72,7 +85,7 @@ public class GreedyClient extends ApplicationAdapter {
 	@Override
 	public void resume() {
 		super.resume();
-		if (Gdx.app.getType() == Application.ApplicationType.Android)
+		if (!Gdx.app.getType().equals(Application.ApplicationType.Desktop))
 			create();
 	}
 

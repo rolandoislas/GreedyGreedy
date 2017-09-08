@@ -14,31 +14,38 @@ public class GreedySocketServer {
 
     @OnWebSocketConnect
     public void onConnect(Session socket) throws Exception {
-        gameHandler.addClient(socket);
+        synchronized (this) {
+            gameHandler.addClient(socket);
+        }
     }
 
     @OnWebSocketClose
     public void onClose(Session socket, int statusCode, String reason) {
-        gameHandler.removeClient(socket);
+        synchronized (this) {
+            gameHandler.removeClient(socket);
+        }
     }
 
     @OnWebSocketMessage
     public void onMessage(Session socket, String message) {
-        JsonObject json;
-        try {
-            json = gson.fromJson(message, JsonObject.class);
+        synchronized (this) {
+            JsonObject json;
+            try {
+                json = gson.fromJson(message, JsonObject.class);
+            } catch (JsonSyntaxException e) {
+                return;
+            }
+            if (!json.has("command"))
+                return;
+            gameHandler.handleCommand(socket, json);
         }
-        catch (JsonSyntaxException e) {
-            return;
-        }
-        if (!json.has("command"))
-            return;
-        gameHandler.handleCommand(socket, json);
     }
 
     @OnWebSocketError
     public void onError(Session socket, Throwable error) {
-        gameHandler.removeClient(socket);
+        synchronized (this) {
+            gameHandler.removeClient(socket);
+        }
     }
 
 }

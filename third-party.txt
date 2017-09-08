@@ -1,0 +1,97 @@
+Greedy Greedy makes use of third-party software and assets.
+
+Poker Chip [image]
+  Creative Commons Attribution 3.0 Unported
+  Nigel Payne - https://thenounproject.com/
+
+dice_05.wav [audio]
+  Creative Commons Attribution 3.0 Unported
+  dermotte - https://freesound.org
+
+Train Door Beep, B.wav [audio]
+  Creative Commons Attribution 3.0 Unported
+  InspectorJ - https://freesound.org
+
+Bamboo Swing, B19.wav
+  Creative Commons Attribution 3.0 Unported
+  InspectorJ - https://freesound.org
+
+tone beep.wav [audio]
+  Creative Commons 0 1.0 Universal
+  pan14 - https://freesound.org
+
+dice31.flac
+  Creative Commons 0 1.0 Universal
+  Magnesus - https://freesound.org
+
+LibGdx
+  Apache License 2.0
+  http://libgdx.badlogicgames.com/
+
+Java-WebSocket
+  MIT license
+  https://tootallnate.github.io/Java-WebSocket/
+
+google-gson
+  Apache License 2.0
+  https://github.com/google/gson
+
+Java JWT
+  MIT License
+  https://github.com/auth0/java-jwt
+
+Apache Commons
+  Apache License 2.0
+  https://commons.apache.org/
+
+Spark
+  Apache License 2.0
+  http://sparkjava.com/
+
+spark-template-handlebars
+  Apache License 2.0
+  https://github.com/perwendel/spark-template-engines/tree/master/spark-template-handlebars
+
+Handlebars
+  MIT License
+  http://handlebarsjs.com/
+
+DavidWebb
+  MIT License
+  https://hgoebl.github.io/DavidWebb/
+
+Lock for Android
+  MIT License
+  https://github.com/auth0/Lock.Android
+
+Jedis
+  MIT License
+  https://github.com/xetorthio/jedis
+
+sql2o
+  MIT License
+  https://github.com/aaberg/sql2o
+
+mysql-connector-java
+  GNU General Public License v2.0
+  https://dev.mysql.com/downloads/connector/j/
+
+SLF4J
+  MIT License
+  https://www.slf4j.org
+
+gdx-smart-font
+  MIT License
+  https://github.com/jrenner/gdx-smart-font
+
+mobile-detect.js
+  MIT License
+  https://hgoebl.github.io/mobile-detect.js/
+
+gdx-pay
+  Apache License 2.0
+  https://github.com/libgdx/gdx-pay
+
+Android SDK
+  Android Software Development Kit License Agreement
+  https://developer.android.com

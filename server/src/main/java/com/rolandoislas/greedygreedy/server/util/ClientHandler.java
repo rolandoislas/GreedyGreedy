@@ -1,5 +1,6 @@
 package com.rolandoislas.greedygreedy.server.util;
 
+import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.util.GameController;
 import com.rolandoislas.greedygreedy.server.data.Client;
 import org.eclipse.jetty.websocket.api.Session;
@@ -11,14 +12,17 @@ public class ClientHandler {
 
     public void removeClient(Session socket) {
         synchronized (this) {
-        Client client = getClient(socket);
-        if (client != null)
-            clients.remove(client);
+            Client client = getClient(socket);
+            if (client != null)
+                clients.remove(client);
         }
     }
 
     public void addClient(Session socket) {
         synchronized (this) {
+            Client client = getClient(socket);
+            if (client != null)
+                clients.remove(client);
             clients.add(new Client(socket));
         }
     }
@@ -28,13 +32,14 @@ public class ClientHandler {
         synchronized (this) {
             if (AuthUtil.verify(token)) {
                 Client client = getClient(socket);
-                if (client == null)
+                if (client == null ||
+                        numberOfPlayers > Constants.MAX_PLAYERS || numberOfPlayers < 1 ||
+                        gameType >= GameController.GameType.values().length || gameType < 0 ||
+                        (numberOfPlayers == 1 && !enableBots))
                     return false;
                 client.setToken(token);
                 client.setGameSize(numberOfPlayers);
                 client.setPrivateGame(privateGame);
-                if (gameType >= GameController.GameType.values().length)
-                    return false;
                 client.setGameType(GameController.GameType.values()[gameType]);
                 client.setEnableBots(enableBots);
                 client.setSearching(true);

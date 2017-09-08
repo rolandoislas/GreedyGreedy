@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
 import com.rolandoislas.greedygreedy.core.data.Constants;
+import com.rolandoislas.greedygreedy.core.event.DialogCallbackHandler;
 import com.rolandoislas.greedygreedy.core.ui.CallbackDialog;
 import com.rolandoislas.greedygreedy.core.ui.skin.DialogSkin;
 import com.rolandoislas.greedygreedy.core.util.GameController;
@@ -18,9 +19,11 @@ import com.rolandoislas.greedygreedy.core.util.TextUtil;
 /**
  * Created by rolando on 7/16/17.
  */
-public class StageMenu extends Stage {
+public class StageMenu extends Stage implements DialogCallbackHandler {
 
     private final TextButton buttonAuth;
+    private final DialogSkin dialogSkin;
+    private CallbackDialog messageDialog;
     private boolean hasActed;
 
     public StageMenu(String message) {
@@ -59,19 +62,32 @@ public class StageMenu extends Stage {
             }
         });
         addActor(buttonMultiplayer);
+        // Store
+        TextButton buttonStore = new TextButton("Store", tbs);
+        buttonStore.setPosition(getWidth() / 2 - buttonStore.getWidth() / 2 ,
+                buttonMultiplayer.getY() - buttonStore.getHeight());
+        buttonStore.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                GreedyClient.setStage(new StageLogin(new StageStore(), null));
+            }
+        });
+        addActor(buttonStore);
         // Info
-        TextButton buttonInfo = new TextButton("Info", tbs);
+        TextButton.TextButtonStyle tbsSmall = new TextButton.TextButtonStyle();
+        tbsSmall.font = TextUtil.generateScaledFont(.5f);
+        TextButton buttonInfo = new TextButton("Info", tbsSmall);
         buttonInfo.setPosition(getWidth() / 2 - buttonInfo.getWidth() / 2,
-                buttonMultiplayer.getY() - buttonInfo.getHeight());
+                buttonStore.getY() - buttonInfo.getHeight());
         buttonInfo.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // TODO info screen
+                GreedyClient.setStage(new StageInfo());
             }
         });
         addActor(buttonInfo);
         // Auth
-        buttonAuth = new TextButton("", tbs);
+        buttonAuth = new TextButton("", tbsSmall);
         buttonAuth.setPosition(getWidth() / 2 - buttonAuth.getWidth() / 2,
                 buttonInfo.getY() - buttonAuth.getHeight());
         buttonAuth.addListener(new ClickListener(){
@@ -89,11 +105,13 @@ public class StageMenu extends Stage {
         });
         addActor(buttonAuth);
         // Message
-        if (message != null && !message.isEmpty()) {
-            CallbackDialog messageDialog = new CallbackDialog(message, new DialogSkin());
-            messageDialog.button("Ok");
+        dialogSkin = new DialogSkin();
+        messageDialog = new CallbackDialog(message, dialogSkin);
+        messageDialog.button("Ok");
+        if (message != null && !message.isEmpty())
             messageDialog.show(this);
-        }
+        // Show banner ad
+        GreedyClient.adHandler.showBannerAd();
     }
 
     public StageMenu() {
@@ -111,7 +129,19 @@ public class StageMenu extends Stage {
     }
 
     @Override
+    public void dispose() {
+        super.dispose();
+        dialogSkin.dispose();
+        GreedyClient.adHandler.hideBannerAd();
+    }
+
+    @Override
     public void onBackButtonPressed() {
+        if (messageDialog != null) {
+            messageDialog.hide();
+            messageDialog = null;
+            return;
+        }
         if (!Gdx.app.getType().equals(Application.ApplicationType.Desktop))
             Gdx.app.exit();
     }
@@ -119,5 +149,10 @@ public class StageMenu extends Stage {
     @Override
     public Color getBackgroundColor() {
         return Color.BLACK;
+    }
+
+    @Override
+    public void dialogResult(Object object) {
+        messageDialog = null;
     }
 }

@@ -7,6 +7,7 @@ public class Player {
     private int score = 0;
     private boolean active;
     private int zilchAmount;
+    private Icon icon;
 
     public void setName(String name) {
         this.name = name;
@@ -54,6 +55,14 @@ public class Player {
 
     public void setZilchAmount(int zilchAmount) {
         this.zilchAmount = zilchAmount;
+    }
+
+    public void setIcon(Icon icon) {
+        this.icon = icon;
+    }
+
+    public Icon getIcon() {
+        return icon;
     }
 
     public enum BotType {

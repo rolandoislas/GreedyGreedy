@@ -67,8 +67,7 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
     }
 
     private static String getRedirectUrl() {
-        String redirectUrl = GreedyClient.args.localCallback ? Constants.AUTH0_REDIRECT_URL_LOCAL :
-                Constants.AUTH0_REDIRECT_URL;
+        String redirectUrl = GreedyApi.getApiUrl() + "api/auth/callback";
         switch (Gdx.app.getType()) {
             case Android:
                 redirectUrl += "?type=android";
@@ -169,6 +168,9 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
 
         @Override
         public void run() {
+            // Check API version
+            if (!checkApiVersion())
+                return;
             Preferences preferences = PreferencesUtil.get(Constants.PREF_CATEGORY_GENERAL);
             // New auth code. Request new token
             if (!authCode.isEmpty()) {
@@ -202,6 +204,25 @@ public class AuthenticationHandlerHosted implements AuthenticationHandler {
                 showLoginPage();
                 loginCallbackHandler = new LoginCallbackHandler(new InetSocketAddress(Constants.LOGIN_CALLBACK_PORT));
                 loginCallbackHandler.listen();
+            }
+        }
+
+        private boolean checkApiVersion() {
+            try {
+                int version = GreedyApi.getVersion();
+                if (version < Constants.API_VERSION) {
+                    fail("API server is running an older version of " + Constants.NAME);
+                    return false;
+                }
+                else if (version > Constants.API_VERSION) {
+                    fail(Constants.NAME + " needs to be updated to connect to the API server.");
+                    return false;
+                }
+                return true;
+            } catch (GreedyException e) {
+                Logger.exception(e);
+                fail("API connection failed");
+                return false;
             }
         }
 

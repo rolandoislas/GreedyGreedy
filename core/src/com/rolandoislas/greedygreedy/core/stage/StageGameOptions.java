@@ -1,5 +1,6 @@
 package com.rolandoislas.greedygreedy.core.stage;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -9,12 +10,12 @@ import com.badlogic.gdx.utils.Align;
 import com.rolandoislas.greedygreedy.core.GreedyClient;
 import com.rolandoislas.greedygreedy.core.actor.PlayerInfoCard;
 import com.rolandoislas.greedygreedy.core.data.Constants;
+import com.rolandoislas.greedygreedy.core.data.Icon;
 import com.rolandoislas.greedygreedy.core.event.DialogCallbackHandler;
+import com.rolandoislas.greedygreedy.core.net.GreedyApi;
 import com.rolandoislas.greedygreedy.core.ui.CallbackDialog;
 import com.rolandoislas.greedygreedy.core.ui.skin.DialogSkin;
-import com.rolandoislas.greedygreedy.core.util.GameController;
-import com.rolandoislas.greedygreedy.core.util.PreferencesUtil;
-import com.rolandoislas.greedygreedy.core.util.TextUtil;
+import com.rolandoislas.greedygreedy.core.util.*;
 
 import java.util.ArrayList;
 
@@ -25,7 +26,10 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
     private final Label privateGameVal;
     private final Label gameTypeVal;
     private final boolean singlePlayer;
+    private final PlayerInfoCard playerInfoCard;
+    private final DialogSkin dialogSkin;
     private DialogResult dialogResult;
+    private CallbackDialog dialog;
 
     public StageGameOptions(boolean singlePlayer) {
         this.singlePlayer = singlePlayer;
@@ -36,12 +40,45 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         title.setPosition(getWidth() / 2 - title.getWidth() / 2, getHeight() - title.getHeight());
         addActor(title);
         // Icon
-        PlayerInfoCard playerInfoCard = new PlayerInfoCard();
+        playerInfoCard = new PlayerInfoCard();
         playerInfoCard.setName(PreferencesUtil.getPlayerName());
         playerInfoCard.setSize(getWidth() / 2 - getWidth() / 2 * .06f, getWidth() / 6);
         playerInfoCard.setPosition(getWidth() / 2 - playerInfoCard.getWidth() / 2,
                 title.getY() - playerInfoCard.getHeight() * 1.5f);
+        playerInfoCard.setIcon(PreferencesUtil.getIcon());
+        playerInfoCard.showGearIcon(true);
+        playerInfoCard.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                GreedyClient.setStage(new StageStore());
+            }
+        });
         addActor(playerInfoCard);
+        // Async Icon update
+        Thread iconUpdateThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Icon icon = null;
+                try {
+                    icon = GreedyApi.getIcon();
+                } catch (GreedyException e) {
+                    Logger.exception(e);
+                }
+                if (icon == null)
+                    return;
+                final Icon finalIcon = icon;
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        playerInfoCard.setIcon(finalIcon);
+                    }
+                });
+                PreferencesUtil.setIcon(icon);
+            }
+        });
+        iconUpdateThread.setDaemon(true);
+        iconUpdateThread.setName("Icon Update");
+        iconUpdateThread.start();
         // Players
         Label.LabelStyle optionsStyle = new Label.LabelStyle();
         optionsStyle.font = TextUtil.generateScaledFont(0.5f);
@@ -60,6 +97,7 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         playersNum = new Label(singlePlayer ? "1" : String.valueOf(Constants.MAX_PLAYERS), optionsStyle);
         float optionsValueX = getWidth() / 2;
         playersNum.setPosition(optionsValueX, players.getY());
+        playersNum.setSize(getWidth() * .25f, playersNum.getHeight());
         if (!singlePlayer)
             playersNum.addListener(new ClickListener(){
                 @Override
@@ -83,6 +121,7 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         // Bots val
         botsVal = new Label(singlePlayer ? "on" : "off", optionsStyle);
         botsVal.setPosition(optionsValueX, bots.getY());
+        botsVal.setSize(getWidth() * .25f, botsVal.getHeight());
         if (!singlePlayer)
             botsVal.addListener(new ClickListener(){
                 @Override
@@ -106,6 +145,8 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         // Private game val
         privateGameVal = new Label(singlePlayer ? "on" : "off", optionsStyle);
         privateGameVal.setPosition(optionsValueX, privateGame.getY());
+        privateGameVal.setSize(getWidth() * .25f, privateGameVal.getHeight());
+        privateGameVal.setColor(Color.LIGHT_GRAY);
         if (!singlePlayer)
             privateGameVal.addListener(new ClickListener(){
                 @Override
@@ -155,10 +196,19 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
         message.setAlignment(Align.center);
         addActor(message);
         startGame(false);
+        // Dialog skin
+        dialogSkin = new DialogSkin();
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        playerInfoCard.dispose();
+        dialogSkin.dispose();
     }
 
     private void showGameTypeDialog() {
-        CallbackDialog dialog = new CallbackDialog("Game Type", new DialogSkin());
+        dialog = new CallbackDialog("Game Type", dialogSkin);
         ArrayList<String> types = new ArrayList<String>();
         types.add("Normal");
         types.add("Zilch");
@@ -196,21 +246,28 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
             gameType = GameController.GameType.ZILCH;
         else
             gameType = GameController.GameType.ANY;
+        GameOptionsUtil.PointValue points = GameOptionsUtil.parseOptions(players, enableBots, privateGame, gameType);
         // Points message
         if (players == 1 && !enableBots)
+            message.setText("Cannot start a 1 person game with no bots.");
+        else if (points.equals(GameOptionsUtil.PointValue.NOT_ENOUGH_PLAYERS))
             message.setText("No points will be awarded for this match: Not enough players.");
-        if (privateGame)
+        else if (points.equals(GameOptionsUtil.PointValue.PRIVATE_GAME))
             message.setText("No points will be awarded for this match: Private game.");
+        else if (!points.equals(GameOptionsUtil.PointValue.FULL_POINTS))
+            message.setText("No points will be awarded for this match.");
+        else
+            message.setText("");
         // Start
-        if (doStart)
+        if (doStart && (players > 1 || (players == 1 && enableBots)))
             GreedyClient.setStage(new StageGame(players, privateGame, enableBots, gameType, singlePlayer));
     }
 
     private void showPlayersDialog() {
-        CallbackDialog dialog = new CallbackDialog("Players", new DialogSkin());
+        dialog = new CallbackDialog("Players", dialogSkin);
         for (int playerNum = 0; playerNum < Constants.MAX_PLAYERS; playerNum++) {
             dialog.getButtonTable().row();
-            dialog.button(String.valueOf(playerNum + 1), playerNum + 1);
+            dialog.button("Players: " + String.valueOf(playerNum + 1), playerNum + 1);
         }
         dialogResult = DialogResult.PLAYERS;
         dialog.show(this);
@@ -218,7 +275,12 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
 
     @Override
     public void onBackButtonPressed() {
-        GreedyClient.setStage(new StageMenu());
+        if (dialog != null) {
+            dialog.hide(null);
+            dialog = null;
+        }
+        else
+            GreedyClient.setStage(new StageMenu());
     }
 
     @Override
@@ -231,6 +293,7 @@ public class StageGameOptions extends Stage implements DialogCallbackHandler {
                 gameTypeVal.setText(String.valueOf(object));
                 break;
         }
+        dialog = null;
         startGame(false);
     }
 

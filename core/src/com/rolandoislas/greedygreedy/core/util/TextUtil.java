@@ -38,6 +38,8 @@ public class TextUtil {
 	}
 
 	public static void dispose() {
+		for (HashMap.Entry<Integer, BitmapFont> font : fonts.entrySet())
+			font.getValue().dispose();
 		fonts.clear();
 		generator = null;
 	}
