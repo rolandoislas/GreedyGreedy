@@ -23,7 +23,7 @@ android {
         applicationId "com.rolandoislas.greedygreedy"
         minSdkVersion 15
         targetSdkVersion 25
-        versionCode 1
+        versionCode 7
         versionName "1.0"
         manifestPlaceholders = [auth0Domain: "@string/auth0_domain", auth0Scheme: "com.rolandoislas.greedygreedy"]
     }

@@ -6,8 +6,9 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.utils.Disposable;
 
-public class Countdown extends Actor {
+public class Countdown extends Actor implements Disposable {
     private final ShapeRenderer shapeRenderer;
     private long millisecondsTotal;
     private float delta;
@@ -149,5 +150,10 @@ public class Countdown extends Actor {
                     x, y,
             };
         }
+    }
+
+    @Override
+    public void dispose() {
+        shapeRenderer.dispose();
     }
 }

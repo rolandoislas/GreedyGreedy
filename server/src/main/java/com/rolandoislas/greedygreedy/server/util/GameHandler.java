@@ -6,14 +6,15 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.data.IDie;
+import com.rolandoislas.greedygreedy.core.data.Icon;
 import com.rolandoislas.greedygreedy.core.data.Player;
 import com.rolandoislas.greedygreedy.core.event.ControlEventListener;
-import com.rolandoislas.greedygreedy.core.util.AchievementHandler;
-import com.rolandoislas.greedygreedy.core.util.AiController;
-import com.rolandoislas.greedygreedy.core.util.GameController;
-import com.rolandoislas.greedygreedy.core.util.Logger;
+import com.rolandoislas.greedygreedy.core.util.*;
 import com.rolandoislas.greedygreedy.server.data.Client;
 import org.eclipse.jetty.websocket.api.Session;
+import org.sql2o.Connection;
+import org.sql2o.Sql2o;
+import org.sql2o.Sql2oException;
 import redis.clients.jedis.Jedis;
 
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public class GameHandler implements ControlEventListener {
     private ReentrantLock redisMutex;
     private String activeGame;
 
-    public GameHandler(String redisServer) {
+    public GameHandler(String redisServer, String mysqlServer) {
         clientHandler = new ClientHandler();
         redis = new Jedis(redisServer);
         gson = new Gson();
@@ -71,10 +72,18 @@ public class GameHandler implements ControlEventListener {
             String gameid = game.getKey();
             JsonArray players = gson.fromJson(game.getValue().get("players"), JsonArray.class);
             String gamestate = game.getValue().get("state");
+            if (players == null || gamestate == null || gamestate.isEmpty())
+                continue;
             // Perform actions for bots
             gamecontroller.stop();
             activeGame = gameid;
-            gamecontroller.loadState(gamestate);
+            try {
+                gamecontroller.loadState(gamestate);
+            } catch (GreedyException e) { // Catch API version mismatch
+                Logger.exception(e);
+                destroyGame(gameid);
+                continue;
+            }
             gamecontroller.start();
             // Check player time
             for (JsonElement playerElement : players) {
@@ -94,6 +103,20 @@ public class GameHandler implements ControlEventListener {
             activeGame = null;
             // Save the state if it has changed
             String newState = gamecontroller.saveState();
+
+            /* === DEV WIN === */ // Comment this out!
+            /*Logger.warn("DEV WIN enabled!");
+            JsonObject stateJson = gson.fromJson(newState, JsonObject.class);
+            ArrayList<Player> playersArray = gson.fromJson(stateJson.get("players").getAsString(),
+                    new TypeToken<ArrayList<Player>>(){}.getType());
+            playersArray.get(0).setScore(AiController.SCORE_WIN - 5000);
+            playersArray.get(1).setScore(AiController.SCORE_WIN);
+            playersArray.get(2).setScore(AiController.SCORE_WIN);
+            playersArray.get(3).setScore(AiController.SCORE_WIN);
+            stateJson.addProperty("players", gson.toJson(playersArray));
+            newState = stateJson.toString();*/
+            /* === DEV WIN === */
+
             if (!newState.equals(gamestate)) {
                 boolean gameOver = gson.fromJson(newState, JsonObject.class).get("gameOver").getAsBoolean();
                 if (!gameOver)
@@ -124,6 +147,7 @@ public class GameHandler implements ControlEventListener {
             String privateGameId = searchingPlayer.getPrivateGameId();
             GameController.GameType gameType = searchingPlayer.getGameType();
             boolean enableBots = searchingPlayer.areBotsEnabled();
+            String oauthId = AuthUtil.getOauthId(searchingPlayer.getToken());
             // Start a solo "muliplayer" game
             if (gameSize == 1) {
                 createGame(searchingPlayer);
@@ -133,7 +157,11 @@ public class GameHandler implements ControlEventListener {
             // Search for compatible players
             matches.clear();
             for (Client potentialMatch : searchingPlayers) {
-                if (potentialMatch != searchingPlayer && potentialMatch.getGameSize() == gameSize &&
+                String potentialMatchOauthId = AuthUtil.getOauthId(potentialMatch.getToken());
+                if (potentialMatchOauthId == null)
+                    continue;
+                if ((!potentialMatchOauthId.equals(oauthId)) &&
+                        potentialMatch.getGameSize() == gameSize &&
                         (potentialMatch.getGameType().equals(GameController.GameType.ANY) ||
                                 gameType.equals(potentialMatch.getGameType())) &&
                         potentialMatch.areBotsEnabled() == enableBots &&
@@ -273,9 +301,18 @@ public class GameHandler implements ControlEventListener {
         activeGame = gameid;
         gamecontroller.addListener(this);
         ArrayList<String> names = new ArrayList<>();
-        for (Client player : players)
+        ArrayList<Icon> icons = new ArrayList<>();
+        for (Client player : players) {
             names.add(AuthUtil.getName(player.getToken()));
+            try {
+                icons.add(Icon.values()[DatabaseUtil.getIcon(AuthUtil.getOauthId(player.getToken()))]);
+            } catch (GreedyException e) {
+                Logger.exception(e);
+                icons.add(Icon.values()[0]);
+            }
+        }
         ((AiController)gamecontroller).setNames(names);
+        ((AiController)gamecontroller).setIcons(icons);
         gamecontroller.start();
         gamecontroller.stop();
         activeGame = null;
@@ -311,6 +348,10 @@ public class GameHandler implements ControlEventListener {
         redisMutex.lock();
         String gameid = redis.hget("players", oauthid);
         JsonArray players = gson.fromJson(redis.hget("games", gameid + ":players"), JsonArray.class);
+        if (players == null) {
+            redisMutex.unlock();
+            return;
+        }
         for (JsonElement playerElement : players) {
             if (playerElement.getAsJsonObject().get("id").getAsString().equals(oauthid)) {
                 playerElement.getAsJsonObject().addProperty("connected", false);
@@ -397,7 +438,14 @@ public class GameHandler implements ControlEventListener {
         String gamestate = redis.hget("games", gameid + ":state");
         gamecontroller.stop();
         activeGame = gameid;
-        gamecontroller.loadState(gamestate);
+        try {
+            gamecontroller.loadState(gamestate);
+        } catch (GreedyException e) {
+            Logger.exception(e);
+            destroyGame(gameid);
+            redisMutex.unlock();
+            return;
+        }
         gamecontroller.start();
         switch (clickAction) {
             case DIE:
@@ -466,8 +514,43 @@ public class GameHandler implements ControlEventListener {
         return redis.hexists("games", activeGame + ":players");
     }
 
-    private void givePointsToPlayers(String activeGame, ArrayList<Player> playersArray) {
-        // TODO add points to database
+    /**
+     * Assigns points to the top three players and updates the mysql database.
+     * @param playersArray sorted players from gamecontroller
+     * @param players redis players array
+     */
+    private void givePointsToPlayers(ArrayList<Player> playersArray, JsonArray players) {
+        // Determine if points should be awarded
+        Client client = null;
+        for (JsonElement playerElement : players) {
+            client = clientHandler.getClient(playerElement.getAsJsonObject().get("id").getAsString());
+            if (client != null && !client.getGameType().equals(GameController.GameType.ANY))
+                break;
+        }
+        if (client == null)
+            return;
+        GameOptionsUtil.PointValue gamePointsValue = GameOptionsUtil.parseOptions(client.getGameSize(),
+                client.areBotsEnabled(), client.isPrivateGame(), client.getGameType());
+        if (!gamePointsValue.equals(GameOptionsUtil.PointValue.FULL_POINTS))
+            return;
+        // Assign points to be distributed
+        HashMap<String, Integer> pointDistributions = new HashMap<>();
+        int realPlayerIndex = 0;
+        for (Player player : playersArray) {
+            if (!player.isBot()) {
+                String oauthid = players.get(realPlayerIndex).getAsJsonObject().get("id").getAsString();
+                pointDistributions.put(oauthid, Constants.WINNING_POINTS_DISTRIBUTIONS[playersArray.indexOf(player)]);
+                realPlayerIndex++;
+            }
+        }
+        // Add the point value
+        for (HashMap.Entry<String, Integer> pointDistribution : pointDistributions.entrySet()) {
+            try {
+                DatabaseUtil.addPointsToUser(pointDistribution.getKey(), pointDistribution.getValue());
+            } catch (GreedyException e) {
+                Logger.exception(e);
+            }
+        }
     }
 
     /**
@@ -564,7 +647,7 @@ public class GameHandler implements ControlEventListener {
     }
 
     @Override
-    public void actionFailed(Action action, FailReason failReason) {
+    public void actionFailed(Action action, FailReason failReason, int player) {
         redisMutex.lock();
         if (!canHandleGameControllerEvent()) {
             redisMutex.unlock();
@@ -577,6 +660,7 @@ public class GameHandler implements ControlEventListener {
         command.addProperty("command", Constants.COMMAND_ACTION_FAILED);
         command.addProperty("action", action.ordinal());
         command.addProperty("failReason", failReason.ordinal());
+        command.addProperty("player", player);
         sendToAll(players, command);
         redisMutex.unlock();
     }
@@ -637,11 +721,7 @@ public class GameHandler implements ControlEventListener {
         command.addProperty("players", gson.toJson(playersArray));
         sendToAll(players, command);
         // Handle game end
-        ArrayList<Player> noBots = new ArrayList<>();
-        for (Player player : playersArray)
-            if (!player.isBot())
-                noBots.add(player);
-        givePointsToPlayers(activeGame, noBots);
+        givePointsToPlayers(playersArray, players);
         destroyGame(activeGame);
         redisMutex.unlock();
     }
@@ -705,7 +785,7 @@ public class GameHandler implements ControlEventListener {
     }
 
     @Override
-    public void rollSuccess() {
+    public void rollSuccess(int player) {
         redisMutex.lock();
         // Reset player turn time on a successful roll
         JsonArray players = gson.fromJson(redis.hget("games", activeGame + ":players"), JsonArray.class);
@@ -716,6 +796,7 @@ public class GameHandler implements ControlEventListener {
         // Forward rollSuccess command
         JsonObject command = new JsonObject();
         command.addProperty("command", Constants.COMMAND_ROLL_SUCCESS);
+        command.addProperty("player", player);
         sendToAll(players, command);
         redisMutex.unlock();
     }

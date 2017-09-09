@@ -8,26 +8,33 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Disposable;
 import com.rolandoislas.greedygreedy.core.data.Constants;
+import com.rolandoislas.greedygreedy.core.data.Icon;
 import com.rolandoislas.greedygreedy.core.data.Player;
+import com.rolandoislas.greedygreedy.core.util.IconUtil;
 import com.rolandoislas.greedygreedy.core.util.TextUtil;
 
-public class PlayerInfoCard extends Actor {
+public class PlayerInfoCard extends Actor implements Disposable {
     private final ShapeRenderer shapeRenderer;
     private final Label name;
     private final Label score;
-    private final Texture image;
+    private final Texture gear;
+    private Texture image;
     private final Label tempScore;
     private boolean empty;
     private boolean active;
     private boolean resizeName;
     private boolean resizeActor;
+    private boolean showGearIcon;
+    private Icon currentIcon;
 
     public PlayerInfoCard() {
         empty = true;
         shapeRenderer =  new ShapeRenderer();
         // Image
-        image = new Texture("image/icon_512.png"); // TODO add actual icons
+        image = new Texture("image/icon_512.png");
+        gear = new Texture("image/gear.png");
         // Text
         Label.LabelStyle lbs = new Label.LabelStyle();
         lbs.font = TextUtil.generateScaledFont(0.25f);
@@ -55,12 +62,18 @@ public class PlayerInfoCard extends Actor {
         shapeRenderer.rect(getX(), getY(), getWidth(), getHeight());
         shapeRenderer.end();
         batch.begin();
-        if (!empty)
-            batch.draw(image, getX() + getHeight() * .1f, getY() + getHeight() * .1f,
-                    getHeight() * .8f, getHeight() * .8f);
+        if (!empty) {
+            float margin = getHeight() * .1f;
+            float size = getHeight() * .8f;
+            batch.draw(image, getX() + margin, getY() + margin, size, size);
+        }
         name.draw(batch, parentAlpha);
         score.draw(batch, parentAlpha);
         tempScore.draw(batch, parentAlpha);
+        if (showGearIcon) {
+            float gearSize = getHeight() * .25f;
+            batch.draw(gear, getX() + getWidth() - gearSize, getY(), gearSize, gearSize);
+        }
     }
 
     @Override
@@ -130,5 +143,26 @@ public class PlayerInfoCard extends Actor {
         this.setName(player.getName());
         this.setScore(player.getScore());
         this.setActive(player.isActive());
+        this.setIcon(player.getIcon());
+    }
+
+    public void setIcon(Icon icon) {
+        if (currentIcon == null || !currentIcon.equals(icon)) {
+            currentIcon = icon;
+            if (image != null)
+                image.dispose();
+            image = new Texture(IconUtil.getIconPath(icon));
+        }
+    }
+
+    public void showGearIcon(boolean showGearIcon) {
+        this.showGearIcon = showGearIcon;
+    }
+
+    @Override
+    public void dispose() {
+        shapeRenderer.dispose();
+        gear.dispose();
+        image.dispose();
     }
 }

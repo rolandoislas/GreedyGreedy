@@ -2,6 +2,7 @@ package com.rolandoislas.greedygreedy.server.data;
 
 import com.rolandoislas.greedygreedy.core.util.GameController;
 import com.rolandoislas.greedygreedy.core.util.Logger;
+import com.rolandoislas.greedygreedy.server.GreedyServer;
 import org.eclipse.jetty.websocket.api.Session;
 
 import java.io.IOException;
@@ -23,8 +24,9 @@ public class Client {
     public void send(String message) {
         try {
             socket.getRemote().sendString(message);
-        } catch (IOException e) {
+        } catch (Exception e) {
             Logger.exception(e);
+            GreedyServer.gameHandler.removeClient(getSocket());
         }
     }
 

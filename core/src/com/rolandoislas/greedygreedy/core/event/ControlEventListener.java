@@ -18,7 +18,7 @@ public interface ControlEventListener extends EventListener {
 
     void whoami(int playerNum);
 
-    void actionFailed(Action action, FailReason failReason);
+    void actionFailed(Action action, FailReason failReason, int player);
 
     void activePoints(int activePoints);
 
@@ -34,7 +34,7 @@ public interface ControlEventListener extends EventListener {
 
     void countdown(long milliseconds);
 
-    void rollSuccess();
+    void rollSuccess(int player);
 
     enum Action {ROLL, STOP, TURN, DIE}
 

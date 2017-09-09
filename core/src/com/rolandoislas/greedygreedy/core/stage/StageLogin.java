@@ -17,6 +17,7 @@ public class StageLogin extends Stage implements DialogCallbackHandler {
     private final Stage successStage;
     private final Stage failStage;
     private final CallbackDialog waitingMessage;
+    private final DialogSkin dialogSkin;
     private String authCode;
     private boolean skipPrompt;
     private DialogResult dialogResult;
@@ -37,7 +38,8 @@ public class StageLogin extends Stage implements DialogCallbackHandler {
         title.setPosition(getWidth() / 2 - title.getWidth() / 2, getHeight() - title.getHeight());
         addActor(title);
         // Login prompt
-        CallbackDialog loginPrompt = new CallbackDialog("Login/Signup", new DialogSkin());
+        dialogSkin = new DialogSkin();
+        CallbackDialog loginPrompt = new CallbackDialog("Login/Signup", dialogSkin);
         loginPrompt.getTitleTable().row();
         loginPrompt.getTitleTable().add("An external browser will be launched.");
         loginPrompt.button("Ok", true);
@@ -47,12 +49,18 @@ public class StageLogin extends Stage implements DialogCallbackHandler {
             loginPrompt.show(this);
         }
         // Waiting message
-        waitingMessage = new CallbackDialog("Waiting for Login", new DialogSkin());
+        waitingMessage = new CallbackDialog("Waiting for Login", dialogSkin);
         waitingMessage.button("Cancel");
     }
 
     public StageLogin(Stage successStage, Stage failStage) {
         this(successStage, failStage, "");
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        dialogSkin.dispose();
     }
 
     @Override

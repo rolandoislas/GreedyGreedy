@@ -11,6 +11,10 @@ public class Constants {
     // Info
     public static final String NAME = "Greedy Greedy";
     public static final String VERSION = "1.0";
+    public static final int API_VERSION = 1;
+    public static String GITHUB_REPO = "https://github.com/rolandoislas/GreedyGreedy";
+    public static final boolean FORCE_DEV_API = false;
+    public static final String FORCE_API_URL = ""; // Dev option to specify a different server
     // Path
     private static final File PATH_ROOT = new File(System.getProperty("user.home", ""), ".greedygreedy/");
     public static final File PATH_LOG = new File(PATH_ROOT, "log");
@@ -25,23 +29,25 @@ public class Constants {
     // Game
     public static final int MAX_PLAYERS = 6;
     public static long TURN_TIME = 60 * 1000;
+    public static int[] WINNING_POINTS_DISTRIBUTIONS = new int[]{50, 25, 10, 1, 1, 1};
     // Preferences
     public static final String PREF_CATEGORY_GENERAL = "general";
     public static final String PREF_CATEGORY_SAVE = "save";
-    public static final String PREF_USERNAME = "username";
     public static final String PREF_GAMESTATE_SINGLE_PLAYER = "gamestateSinglePlayer";
     public static final String PREF_ACCESS_TOKEN = "accessToken";
     public static final String PREF_CODE_VERIFIER = "codeVerifier";
     public static final String PREF_REFRESH_TOKEN = "refreshToken";
     public static final String PREF_USER_INFO = "userInfo";
+    public static final String PREF_POINTS = "points";
+    public static final String PREF_ICON = "icon";
+    public static final String PREF_FAILED_TRANSACTIONS = "failedTransactions";
     // Auth
     public static final int LOGIN_CALLBACK_PORT = 65177;
     public static final String AUTH0_DOMAIN = "https://greedygreedy.auth0.com/";
     public static final String AUTH0_AUDIENCE = "https://greedygreedy.herokuapp.com/";
     public static final String AUTH0_AUDIENCE_LOCAL = "http://localhost:5000/";
+    public static final String AUTH0_AUDIENCE_DEV = "https://greedygreedy-dev.herokuapp.com/";
     public static final String AUTH0_CLIENT_ID = "qrWi5pnnayfCt66DMUdNHMeGqBWh3U9X";
-    public static final String AUTH0_REDIRECT_URL = "https://greedygreedy.herokuapp.com/api/auth/callback";
-    public static final String AUTH0_REDIRECT_URL_LOCAL = "http://localhost:5000/api/auth/callback";
     public static final String AUTH0_KEYSET = "https://greedygreedy.auth0.com/.well-known/jwks.json";
     public static final String AUTH0_SCOPE = "openid profile offline_access";
     // Command
@@ -61,4 +67,10 @@ public class Constants {
     public static final int COMMAND_ACHIEVEMENT = 13;
     public static final int COMMAND_COUNTDOWN = 14;
     public static final int COMMAND_ROLL_SUCCESS = 15;
+    // Billing
+    public static final String BILLING_KEY_GOOGLE = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhqfgqXOP0FV3IFV+KbQK" +
+            "8qbzXM2bCdhDUnvULS4+cb8u5tJErqsN/w60FyW+PFelTGGuFqAjdPfvVTp9pcc/NKxCaWDT/aRlx5jBbTn+dIBC/ILk8vDbK8RRowv/" +
+            "dL3EHxGH54KUM9FMP8BBfJJRE46Ej0Yjguvl9ghTC0FxWBBkzskoblByUVTsWO6kPQTw+iPmumq+/nE4Sc/CRA5eKFogZLkaicNsXp4q" +
+            "hkk7DYZARYgbzj0JCD+uQXB41dhB0LRk5Bi0IoO9d6u9mJmSHP8qhRujML0jRqIgsamrWeQeH8bHUtesn1hwEsWGoy6YDRUUpRSh5fR/" +
+            "2pdMSe7LJQIDAQAB";
 }

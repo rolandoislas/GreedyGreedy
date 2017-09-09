@@ -18,7 +18,7 @@ public interface GameController {
 
     void act(float delta);
 
-    void loadState(String string);
+    void loadState(String string) throws GreedyException;
 
     String saveState();
 

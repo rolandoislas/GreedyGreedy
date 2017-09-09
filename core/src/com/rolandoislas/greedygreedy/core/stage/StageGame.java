@@ -47,6 +47,11 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     private boolean searching;
     private int reconnects;
     private Countdown countdown;
+    private boolean tookAction;
+    private Skin logSkin;
+    private DialogSkin dialogSkin;
+    private SoundUtil soundUtil;
+    private boolean gameGivesPoints;
 
     public StageGame(int numberOfPlayers, boolean privateGame, boolean enableBots, GameController.GameType gameType,
                      boolean singlePlayer) {
@@ -57,13 +62,20 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
         createPlayers();
         createLog();
         createDialogs();
+        soundUtil = new SoundUtil();
+        gameGivesPoints = GameOptionsUtil.parseOptions(numberOfPlayers, enableBots, privateGame, gameType)
+                .equals(GameOptionsUtil.PointValue.FULL_POINTS);
         // Start game controller
         if (singlePlayer) {
             gameController = new AiController(numberOfPlayers, gameType, enableBots, singlePlayer);
             Preferences save = PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE);
             if (save.contains(Constants.PREF_GAMESTATE_SINGLE_PLAYER) &&
                     !save.getString(Constants.PREF_GAMESTATE_SINGLE_PLAYER).isEmpty()) {
-                gameController.loadState(save.getString(Constants.PREF_GAMESTATE_SINGLE_PLAYER));
+                try {
+                    gameController.loadState(save.getString(Constants.PREF_GAMESTATE_SINGLE_PLAYER));
+                } catch (GreedyException e) {
+                    Logger.exception(e);
+                }
                 save.remove(Constants.PREF_GAMESTATE_SINGLE_PLAYER);
                 save.flush();
             }
@@ -83,11 +95,12 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
 
     private void createDialogs() {
         // Connecting dialog
-        connectingDialog = new CallbackDialog("Connecting to server", new DialogSkin());
+        dialogSkin = new DialogSkin();
+        connectingDialog = new CallbackDialog("Connecting to server", dialogSkin);
         if (!singlePlayer)
             connectingDialog.show(this);
         // Searching dialog
-        searchingDialog = new CallbackDialog("Searching for game", new DialogSkin());
+        searchingDialog = new CallbackDialog("Searching for game", dialogSkin);
         searchingDialog.button("Cancel", "search:cancel");
     }
 
@@ -101,20 +114,20 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
 
     private void createLog() {
         // Log button
-        Skin skin = new Skin();
-        skin.add("button", new Texture("image/log_button.png"));
+        logSkin = new Skin();
+        logSkin.add("button", new Texture("image/log_button.png"));
         ImageButton.ImageButtonStyle ibs = new ImageButton.ImageButtonStyle();
-        ibs.imageUp = skin.getDrawable("button");
+        ibs.imageUp = logSkin.getDrawable("button");
         buttonLog = new ImageButton(ibs);
         buttonLog.setBounds(0, 0, getWidth() * .1f, getWidth() * .1f);
         addActor(buttonLog);
         // Log
-        skin.add("background", new Texture("image/log_background.png"));
-        skin.add("selection", new Texture("image/transparent.png"));
+        logSkin.add("background", new Texture("image/log_background.png"));
+        logSkin.add("selection", new Texture("image/transparent.png"));
         List.ListStyle listStyle = new List.ListStyle();
         listStyle.font = TextUtil.generateScaledFont(0.25f);
-        listStyle.background = skin.getDrawable("background");
-        listStyle.selection = skin.getDrawable("selection");
+        listStyle.background = logSkin.getDrawable("background");
+        listStyle.selection = logSkin.getDrawable("selection");
         log = new HidableLog(listStyle);
         log.setBounds(-getWidth(), 0, getWidth(), getHeight());
         log.setHidden(true);
@@ -259,7 +272,7 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
             GreedyClient.setStage(new StageMenu());
         // Ignore back button if the game is multiplayer
         else {
-            if (searching)
+            if (searching || !connected)
                 GreedyClient.setStage(new StageMenu());
             else
                 setMessage(true, false, "Cannot exit multiplayer game.");
@@ -268,16 +281,20 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
 
     @Override
     public void connected() {
+        tookAction = true;
         connected = true;
         reconnects = 0;
         connectingDialog.hide();
-        if (!singlePlayer)
+        if (!singlePlayer) {
+            searching = true;
             searchingDialog.show(this);
+        }
     }
 
     @Override
     public void disConnected() {
         connected = false;
+        searching = false;
         if (gameOver)
             return;
         connectingDialog.show(this);
@@ -310,7 +327,9 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     }
 
     @Override
-    public void actionFailed(Action action, FailReason failReason) {
+    public void actionFailed(Action action, FailReason failReason, int player) {
+        if (player != whoami)
+            return;
         switch (action) {
             case DIE:
                 switch (failReason) {
@@ -326,6 +345,8 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
                 switch (failReason) {
                     case NO_PLAYABLE_VALUES:
                         setMessage(false, false, "Ziltch!");
+                        tookAction = true;
+                        soundUtil.playZilch();
                         break;
                     case NO_SELECTION:
                         setMessage(false, false, "No dice selected!");
@@ -357,6 +378,10 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
             case TURN:
                 switch (failReason) {
                     case TIME_UP:
+                        if (!tookAction)
+                            GreedyClient.setStage(new StageMenu("Disconnected for inactivity"));
+                        tookAction = false;
+                        soundUtil.playTimeUp();
                         break;
                     default:
                         Logger.debug("Unhandled failed reason: %s for action %s", failReason.toString(),
@@ -395,9 +420,12 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     @Override
     public void turnEnd(int player, int points) {
         String name = players.get(player).getName();
-        if (points > 0)
-            setMessage(true, true, String.format(Locale.US,"%s ended their turn for %d points.",
+        if (points > 0) {
+            setMessage(true, true, String.format(Locale.US, "%s ended their turn for %d points.",
                     name, points));
+            if (player == whoami)
+                soundUtil.playStop();
+        }
         else
             setMessage(true, true, String.format(Locale.US, "%s ziltched!", name));
     }
@@ -406,7 +434,7 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     public void gameEnd(ArrayList<Player> players) {
         gameOver = true;
         gameController.stop();
-        GreedyClient.setStage(new StagePostGame(players));
+        GreedyClient.setStage(new StagePostGame(players, whoami, gameGivesPoints));
     }
 
     @Override
@@ -419,7 +447,8 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     public void zilchWarning(int player) {
         setMessage(true, true, String.format(Locale.US,
                 "%s will have their points set to 0 if they zilch again.", players.get(player).getName()));
-        // TODO zilch sound
+        if (player == whoami)
+            soundUtil.playZilchWarning();
     }
 
     @Override
@@ -434,21 +463,36 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     }
 
     @Override
-    public void rollSuccess() {
-        // TODO play roll sound
+    public void rollSuccess(int player) {
+        if (player == whoami) {
+            tookAction = true;
+            soundUtil.playRoll();
+        }
     }
 
     @Override
     public void dispose() {
         super.dispose();
-        gameController.stop();
+        // Dispose actors
+        for (DieActor die : dice)
+            die.dispose();
+        for (PlayerInfoCard pic : playerInfoCards)
+            pic.dispose();
+        countdown.dispose();
+        dialogSkin.dispose();
+        logSkin.dispose();
+        soundUtil.dispose();
         // Save state
         if (singlePlayer && !gameOver) {
+            gameController.stop();
             String gameState = gameController.saveState();
             Preferences save = PreferencesUtil.get(Constants.PREF_CATEGORY_SAVE);
             save.putString(Constants.PREF_GAMESTATE_SINGLE_PLAYER, gameState);
             save.flush();
         }
+        // Stop the controller
+        gameOver = true;
+        gameController.stop();
     }
 
     private int getActivePlayer() {

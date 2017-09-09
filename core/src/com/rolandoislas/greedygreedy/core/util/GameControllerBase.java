@@ -35,9 +35,10 @@ public abstract class GameControllerBase implements GameController {
             listener.activePoints(activePoints);
     }
 
-    public void sendFailUpdate(final ControlEventListener.Action action, final ControlEventListener.FailReason failReason) {
+    public void sendFailUpdate(final ControlEventListener.Action action,
+                               final ControlEventListener.FailReason failReason, int player) {
         for (ControlEventListener listener : eventListeners)
-            listener.actionFailed(action, failReason);
+            listener.actionFailed(action, failReason, player);
     }
 
     public void sendPlayerUpdate(ArrayList<Player> players) {
@@ -80,8 +81,8 @@ public abstract class GameControllerBase implements GameController {
             listener.countdown(milliseconds);
     }
 
-    public void sendRollSuccess() {
+    public void sendRollSuccess(int player) {
         for (ControlEventListener listener : eventListeners)
-            listener.rollSuccess();
+            listener.rollSuccess(player);
     }
 }

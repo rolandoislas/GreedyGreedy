@@ -8,4 +8,8 @@ public class GreedyException extends Exception {
     public GreedyException(String message) {
         super(message);
     }
+
+    public GreedyException() {
+        super();
+    }
 }

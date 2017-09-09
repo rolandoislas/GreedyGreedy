@@ -31,6 +31,8 @@ public class WebClient extends GameControllerBase implements GameController {
     private final boolean privateGame;
     private final GameType gameType;
     private final boolean enableBots;
+    private long pingTime;
+    private long PING_INTERVAL = 30000;
 
     public WebClient(int numberOfPlayers, boolean privateGame, GameType gameType, boolean enableBots) {
         this.numberOfPlayers = numberOfPlayers;
@@ -42,8 +44,7 @@ public class WebClient extends GameControllerBase implements GameController {
 
     private static URI getWebSocketUrl() {
         try {
-            String uri = (GreedyClient.args.localCallback ? Constants.AUTH0_AUDIENCE_LOCAL : Constants.AUTH0_AUDIENCE)
-                .replace("http", "ws");
+            String uri = GreedyApi.getApiUrl().replace("http", "ws");
             return new URI(uri + "socket/game");
         } catch (URISyntaxException e) {
             Logger.exception(e);
@@ -102,7 +103,12 @@ public class WebClient extends GameControllerBase implements GameController {
 
     @Override
     public void act(float delta) {
-        // Sounds like effort, acting.
+        if (!webSocket.isOpen())
+            return;
+        if (System.currentTimeMillis() - pingTime > PING_INTERVAL) {
+            webSocket.sendPing();
+            pingTime = System.currentTimeMillis();
+        }
     }
 
     @Override
@@ -182,7 +188,8 @@ public class WebClient extends GameControllerBase implements GameController {
                     sendTurnEnd(json.get("player").getAsInt(), json.get("points").getAsInt());
                     break;
                 case Constants.COMMAND_ACTION_FAILED:
-                    if (!json.has("action") || !json.has("failReason"))
+                    if (!json.has("action") || !json.has("failReason") ||
+                            !json.has("player"))
                         return;
                     int action = json.get("action").getAsInt();
                     int failReason = json.get("failReason").getAsInt();
@@ -191,7 +198,7 @@ public class WebClient extends GameControllerBase implements GameController {
                     if (ControlEventListener.Action.values().length <= action)
                         return;
                     sendFailUpdate(ControlEventListener.Action.values()[action],
-                            ControlEventListener.FailReason.values()[failReason]);
+                            ControlEventListener.FailReason.values()[failReason], json.get("player").getAsInt());
                     break;
                 case Constants.COMMAND_ACTIVE_POINTS:
                     if (!json.has("points"))
@@ -230,7 +237,9 @@ public class WebClient extends GameControllerBase implements GameController {
                     sendCountdown(json.get("milliseconds").getAsLong());
                     break;
                 case Constants.COMMAND_ROLL_SUCCESS:
-                    sendRollSuccess();
+                    if (!json.has("player"))
+                        return;
+                    sendRollSuccess(json.get("player").getAsInt());
                     break;
                 default:
                     Logger.debug("Unhandled web socket command %d", command);

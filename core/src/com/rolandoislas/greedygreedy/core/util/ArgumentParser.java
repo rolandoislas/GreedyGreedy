@@ -15,6 +15,7 @@ public class ArgumentParser {
 	public final boolean logVerbose;
 	public final boolean localCallback;
 	public final String preferencesProfile;
+	public final boolean devCallback;
 
     public ArgumentParser(String[] args) {
 		argsList = Arrays.asList(args);
@@ -25,15 +26,17 @@ public class ArgumentParser {
 		logVerbose = hasOption("-v", "--verbose");
 		localCallback = hasOption("--local-callback");
 		preferencesProfile = getArgAfter("-profile");
+		devCallback = hasOption("--dev-callback");
 	}
 
 	private void showHelp() {
 		System.out.printf("%s v%s is licensed under the GPLv2 license.\n", Constants.NAME, Constants.VERSION);
 		System.out.printf("\nUsage: java -jar greedygreedy.jar [args] [flags]\n");
 		System.out.printf("\nArgs\n");
-		System.out.printf("\t-profile <name>: Use a specified user profile");
+		System.out.printf("\t-profile <name>: Use a specified user profile\n");
 		System.out.printf("\nFlags\n");
-		System.out.printf("\t--local-callback: Use localhost for the API/server calls");
+		System.out.printf("\t--local-callback: Use localhost for the API/server calls\n");
+		System.out.printf("\t--dev-callback: Use the dev server for the API/server calls\n");
 		System.out.printf("\nLogging\n");
 		System.out.printf("\t-d, --debug: debug logging\n");
 		System.out.printf("\t-e, --extra: extra logging\n");

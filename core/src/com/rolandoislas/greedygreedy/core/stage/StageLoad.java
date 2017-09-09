@@ -22,6 +22,8 @@ public class StageLoad extends Stage {
 	private final Image icon;
 	private final Label loading;
 	private final boolean doLoad;
+	private final Texture iconTexure;
+	private final Label.LabelStyle loadingStyle;
 	private int skipTicks = 1;
 	private ArrayList<Float> fontSizes = new ArrayList<Float>(Arrays.asList(1f, 1.25f, 0.25f, 0.5f));
 	private int percent = 0;
@@ -34,7 +36,8 @@ public class StageLoad extends Stage {
 	public StageLoad(boolean doLoad) {
 		this.doLoad = doLoad;
 		// Create icon
-		icon = new Image(new Texture("image/icon_512.png")); // TODO set icon
+		iconTexure = new Texture("image/icon_512.png");
+		icon = new Image(iconTexure);
 		float size = Gdx.graphics.getHeight();
 		if (Gdx.graphics.getHeight() > Gdx.graphics.getWidth())
 			size = Gdx.graphics.getWidth();
@@ -44,7 +47,7 @@ public class StageLoad extends Stage {
 				Gdx.graphics.getHeight() / 2f - icon.getHeight() / 2f);
 		addActor(icon);
 		// Loading Text
-		Label.LabelStyle loadingStyle = new Label.LabelStyle();
+		loadingStyle = new Label.LabelStyle();
 		loadingStyle.font = new BitmapFont(Gdx.files.internal("font/collvetica.fnt"));
 		loadingStyle.font.getData().setScale((Gdx.graphics.getHeight() * .05f) / loadingStyle.font.getLineHeight());
 		loadingStyle.fontColor = Color.WHITE;
@@ -57,6 +60,13 @@ public class StageLoad extends Stage {
 	@SuppressWarnings("unused")
 	public StageLoad() {
 		this(true);
+	}
+
+	@Override
+	public void dispose() {
+		super.dispose();
+		iconTexure.dispose();
+		loadingStyle.font.dispose();
 	}
 
 	@Override

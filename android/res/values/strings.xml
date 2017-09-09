@@ -4,4 +4,7 @@
     <string name="app_name">Greedy Greedy</string>
 
     <string name="auth0_domain">greedygreedy.auth0.com</string>
+
+    <string name="ad_id_menu_banner">ca-app-pub-5712325005194558/6464188158</string>
+
 </resources>

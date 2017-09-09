@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.rolandoislas.greedygreedy.core.data.Constants;
 import com.rolandoislas.greedygreedy.core.data.Die;
+import com.rolandoislas.greedygreedy.core.data.Icon;
 import com.rolandoislas.greedygreedy.core.data.Player;
 import com.rolandoislas.greedygreedy.core.event.ControlEventListener;
 
@@ -19,7 +20,7 @@ public class AiController extends GameControllerBase implements GameController {
     private static final int SCORE_FIVE = 50;
     private static final int[] SCORE_PAIR = new int[] {200, 50, 50, 50, 100, 50};
     private static final int SCORE_START_THRESHOLD = 1000;
-    private static final int SCORE_WIN = 10000;
+    public static final int SCORE_WIN = 10000;
     private static final int ZILCH_MAX = 2;
     private boolean singlePlayer;
     private int numberOfPlayers;
@@ -36,6 +37,7 @@ public class AiController extends GameControllerBase implements GameController {
     private ReentrantLock mutex = new ReentrantLock();
     private ArrayList<String> names;
     private boolean gameOver;
+    private ArrayList<Icon> icons;
 
     public AiController(int numberOfPlayers, GameType gameType, boolean enableBots, boolean singlePlayer) {
         this.numberOfPlayers = numberOfPlayers;
@@ -43,6 +45,7 @@ public class AiController extends GameControllerBase implements GameController {
         this.enableBots = enableBots;
         this.singlePlayer = singlePlayer;
         names = new ArrayList<String>();
+        icons = new ArrayList<Icon>();
     }
 
     @Override
@@ -76,7 +79,8 @@ public class AiController extends GameControllerBase implements GameController {
             return;
         mutex.lock();
         if (!turnStarted) {
-            sendFailUpdate(ControlEventListener.Action.DIE, ControlEventListener.FailReason.TURN_NOT_STARTED);
+            sendFailUpdate(ControlEventListener.Action.DIE, ControlEventListener.FailReason.TURN_NOT_STARTED,
+                    getActivePlayer());
             mutex.unlock();
             return;
         }
@@ -120,11 +124,14 @@ public class AiController extends GameControllerBase implements GameController {
             if (!diceHavePlayableValue()) {
                 activePoints = 0;
                 sendAchievement(AchievementHandler.Achievement.INSTANT_ZILCH, getActivePlayer());
-                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_PLAYABLE_VALUES);
+                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_PLAYABLE_VALUES,
+                        getActivePlayer());
                 handleZilch(true);
                 setNextPlayerActive();
                 sendPlayerUpdate(players);
             }
+            else
+                sendRollSuccess(getActivePlayer());
         }
         // Start a roll
         else {
@@ -135,7 +142,8 @@ public class AiController extends GameControllerBase implements GameController {
                     selected.add(die.getFace());
             // Do nothing if there was no selection
             if (selected.size() == 0) {
-                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_SELECTION);
+                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_SELECTION,
+                        getActivePlayer());
                 mutex.unlock();
                 return;
             }
@@ -145,7 +153,8 @@ public class AiController extends GameControllerBase implements GameController {
                 activePoints += rollScore;
             }
             else {
-                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_SCORE);
+                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_SCORE,
+                        getActivePlayer());
                 mutex.unlock();
                 return;
             }
@@ -171,13 +180,14 @@ public class AiController extends GameControllerBase implements GameController {
             // Check the post roll for playable values
             if (!diceHavePlayableValue()) {
                 sendAchievement(AchievementHandler.Achievement.ZILCH, getActivePlayer());
-                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_PLAYABLE_VALUES);
+                sendFailUpdate(ControlEventListener.Action.ROLL, ControlEventListener.FailReason.NO_PLAYABLE_VALUES,
+                        getActivePlayer());
                 handleZilch(true);
                 activePoints = 0;
                 setNextPlayerActive();
             }
             else
-                sendRollSuccess();
+                sendRollSuccess(getActivePlayer());
             sendActivePoints(activePoints);
             sendPlayerUpdate(players);
         }
@@ -217,7 +227,8 @@ public class AiController extends GameControllerBase implements GameController {
             return;
         mutex.lock();
         if (!turnStarted) {
-            sendFailUpdate(ControlEventListener.Action.STOP, ControlEventListener.FailReason.TURN_NOT_STARTED);
+            sendFailUpdate(ControlEventListener.Action.STOP, ControlEventListener.FailReason.TURN_NOT_STARTED,
+                    getActivePlayer());
             mutex.unlock();
             return;
         }
@@ -229,7 +240,8 @@ public class AiController extends GameControllerBase implements GameController {
                 selected.add(die.getFace());
         int rollPoints = scoreSelected(selected);
         if (rollPoints == 0) {
-            sendFailUpdate(ControlEventListener.Action.STOP, ControlEventListener.FailReason.NO_SELECTION);
+            sendFailUpdate(ControlEventListener.Action.STOP, ControlEventListener.FailReason.NO_SELECTION,
+                    getActivePlayer());
             mutex.unlock();
             return;
         }
@@ -251,7 +263,8 @@ public class AiController extends GameControllerBase implements GameController {
                 }
         }
         else {
-            sendFailUpdate(ControlEventListener.Action.STOP, ControlEventListener.FailReason.NOT_ENOUGH_POINTS);
+            sendFailUpdate(ControlEventListener.Action.STOP, ControlEventListener.FailReason.NOT_ENOUGH_POINTS,
+                    getActivePlayer());
             mutex.unlock();
             return;
         }
@@ -349,12 +362,17 @@ public class AiController extends GameControllerBase implements GameController {
     }
 
     @Override
-    public void loadState(String saveJson) {
+    public void loadState(String saveJson) throws GreedyException {
         Gson gson = new Gson();
         JsonObject save = gson.fromJson(saveJson, JsonObject.class);
+        int apiVersion = save.get("apiVersion").getAsInt();
+        if (apiVersion != Constants.API_VERSION)
+            throw new GreedyException("API version mismatch");
         players = gson.fromJson(save.get("players").getAsString(), new TypeToken<ArrayList<Player>>(){}.getType());
-        if (singlePlayer)
+        if (singlePlayer) {
             players.get(0).setName(PreferencesUtil.getPlayerName());
+            players.get(0).setIcon(PreferencesUtil.getIcon());
+        }
         dice = gson.fromJson(save.get("dice").getAsString(), new TypeToken<ArrayList<Die>>(){}.getType());
         turnStarted = save.get("turnStarted").getAsBoolean();
         activePoints = save.get("activePoints").getAsInt();
@@ -372,6 +390,7 @@ public class AiController extends GameControllerBase implements GameController {
     public String saveState() {
         Gson gson = new Gson();
         JsonObject save = new JsonObject();
+        save.addProperty("apiVersion", Constants.API_VERSION);
         save.addProperty("players", gson.toJson(players));
         save.addProperty("dice", gson.toJson(dice));
         save.addProperty("turnStarted", turnStarted);
@@ -496,7 +515,7 @@ public class AiController extends GameControllerBase implements GameController {
     public void forceNextPlayerActive() {
         activePoints = 0;
         sendAchievement(AchievementHandler.Achievement.TIME_UP, getActivePlayer());
-        sendFailUpdate(ControlEventListener.Action.TURN, ControlEventListener.FailReason.TIME_UP);
+        sendFailUpdate(ControlEventListener.Action.TURN, ControlEventListener.FailReason.TIME_UP, getActivePlayer());
         handleZilch(true);
         setNextPlayerActive();
         sendPlayerUpdate(players);
@@ -556,11 +575,14 @@ public class AiController extends GameControllerBase implements GameController {
             Player human = new Player();
             if (singlePlayer && playerNum == 0) {
                 human.setName(PreferencesUtil.getPlayerName());
+                human.setIcon(PreferencesUtil.getIcon());
             }
             if (playerNum == 0)
                 human.setActive(true);
             if (getNames().size() > playerNum)
                 human.setName(getNames().get(playerNum));
+            if (getIcons().size() > playerNum)
+                human.setIcon(getIcons().get(playerNum));
             players.add(human);
         }
         if (!enableBots)
@@ -570,6 +592,7 @@ public class AiController extends GameControllerBase implements GameController {
             bot.setBot(true);
             bot.setBotType(Player.BotType.values()[random.nextInt(Player.BotType.values().length)]);
             bot.setName(bot.getBotType().username);
+            bot.setIcon(Icon.values()[random.nextInt(Icon.values().length)]);
             players.add(bot);
         }
     }
@@ -580,5 +603,13 @@ public class AiController extends GameControllerBase implements GameController {
 
     public ArrayList<String> getNames() {
         return names;
+    }
+
+    public void setIcons(ArrayList<Icon> icons) {
+        this.icons = icons;
+    }
+
+    public ArrayList<Icon> getIcons() {
+        return icons;
     }
 }

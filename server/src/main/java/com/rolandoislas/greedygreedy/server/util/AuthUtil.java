@@ -10,8 +10,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.rolandoislas.greedygreedy.core.data.Constants;
+import com.rolandoislas.greedygreedy.core.util.GreedyException;
 import com.rolandoislas.greedygreedy.core.util.Logger;
-import com.rolandoislas.greedygreedy.server.GreedySparkServer;
+import com.rolandoislas.greedygreedy.server.GreedySparkServerApi;
 import org.bouncycastle.util.encoders.Base64;
 import org.json.JSONObject;
 import spark.Request;
@@ -26,8 +27,8 @@ public class AuthUtil {
 
     static {
         Webb webb = Webb.create();
-        JSONObject keyset = webb.get(Constants.AUTH0_KEYSET).ensureSuccess().asJsonObject().getBody();
         try {
+            JSONObject keyset = webb.get(Constants.AUTH0_KEYSET).ensureSuccess().asJsonObject().getBody();
             byte[] publicKeyBytes = Base64.decode(keyset.getJSONArray("keys").getJSONObject(0).getJSONArray("x5c")
                     .getString(0));
 
@@ -44,6 +45,7 @@ public class AuthUtil {
                     .build();
         } catch (Exception e) {
             Logger.exception(e);
+            e.printStackTrace();
             System.exit(e.hashCode());
         }
     }
@@ -85,9 +87,9 @@ public class AuthUtil {
         String noName = "Best Player Ever";
         JsonObject userInfo;
         try {
-            userInfo = new Gson().fromJson(GreedySparkServer.getUserInfo(token), JsonObject.class);
+            userInfo = new Gson().fromJson(GreedySparkServerApi.getUserInfo(token), JsonObject.class);
         }
-        catch (JsonSyntaxException e) {
+        catch (JsonSyntaxException | GreedyException e) {
             return noName;
         }
         if (userInfo == null) {
