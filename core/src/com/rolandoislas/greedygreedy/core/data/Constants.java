@@ -13,7 +13,7 @@ public class Constants {
     public static final String VERSION = "1.0";
     public static final int API_VERSION = 1;
     public static String GITHUB_REPO = "https://github.com/rolandoislas/GreedyGreedy";
-    public static final boolean FORCE_DEV_API = true;
+    public static final boolean FORCE_DEV_API = false;
     public static final String FORCE_API_URL = ""; // Dev option to specify a different server
     // Path
     private static final File PATH_ROOT = new File(System.getProperty("user.home", ""), ".greedygreedy/");
