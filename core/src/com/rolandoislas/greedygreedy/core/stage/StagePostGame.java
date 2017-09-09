@@ -20,7 +20,7 @@ public class StagePostGame extends Stage {
     private final ArrayList<PlayerInfoCard> playerInfoCards;
     private final Chip chip;
 
-    public StagePostGame(ArrayList<Player> players, int whoami) {
+    public StagePostGame(ArrayList<Player> players, int whoami, boolean gameGivesPoints) {
         // Player list
         playerInfoCards = new ArrayList<PlayerInfoCard>();
         for (Player player : players) {
@@ -34,7 +34,9 @@ public class StagePostGame extends Stage {
         // New points
         Label.LabelStyle lbs = new Label.LabelStyle();
         lbs.font = TextUtil.generateScaledFont(1f);
-        int points = Constants.WINNING_POINTS_DISTRIBUTIONS[whoami];
+        int points = 0;
+        if (gameGivesPoints)
+            points = Constants.WINNING_POINTS_DISTRIBUTIONS[whoami];
         Label pointsLabel = new Label(String.format(Locale.US, "+%d %s",
                 points,
                 points == 1 ? "chip" : "chips"), lbs);

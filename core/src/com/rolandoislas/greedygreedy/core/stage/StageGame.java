@@ -51,6 +51,7 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     private Skin logSkin;
     private DialogSkin dialogSkin;
     private SoundUtil soundUtil;
+    private boolean gameGivesPoints;
 
     public StageGame(int numberOfPlayers, boolean privateGame, boolean enableBots, GameController.GameType gameType,
                      boolean singlePlayer) {
@@ -62,6 +63,8 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
         createLog();
         createDialogs();
         soundUtil = new SoundUtil();
+        gameGivesPoints = GameOptionsUtil.parseOptions(numberOfPlayers, enableBots, privateGame, gameType)
+                .equals(GameOptionsUtil.PointValue.FULL_POINTS);
         // Start game controller
         if (singlePlayer) {
             gameController = new AiController(numberOfPlayers, gameType, enableBots, singlePlayer);
@@ -431,7 +434,7 @@ public class StageGame extends Stage implements ControlEventListener, DialogCall
     public void gameEnd(ArrayList<Player> players) {
         gameOver = true;
         gameController.stop();
-        GreedyClient.setStage(new StagePostGame(players, whoami));
+        GreedyClient.setStage(new StagePostGame(players, whoami, gameGivesPoints));
     }
 
     @Override

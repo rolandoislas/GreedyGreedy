@@ -12,7 +12,7 @@ Train Door Beep, B.wav [audio]
   Creative Commons Attribution 3.0 Unported
   InspectorJ - https://freesound.org
 
-Bamboo Swing, B19.wav
+Bamboo Swing, B19.wav [audio]
   Creative Commons Attribution 3.0 Unported
   InspectorJ - https://freesound.org
 
@@ -20,7 +20,7 @@ tone beep.wav [audio]
   Creative Commons 0 1.0 Universal
   pan14 - https://freesound.org
 
-dice31.flac
+dice31.flac [audio]
   Creative Commons 0 1.0 Universal
   Magnesus - https://freesound.org
 
